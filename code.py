@@ -14,7 +14,7 @@ import torchvision.transforms as T
 from torchvision.transforms.functional import pad
 from torch.utils.data import DataLoader, random_split
 from thesisproject.data import Dataset2D
-from thesisproject.models import Unet
+from thesisproject.models import UNet
 from PIL import Image
 from skimage.io import imread
 from tqdm import tqdm
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     ## Train
     width_out = height_out = width_in = height_in = 256
-    net = Unet(3, 3)
+    net = UNet(3, 3)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
