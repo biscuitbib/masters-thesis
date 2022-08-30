@@ -64,14 +64,14 @@ class Up(nn.Module):
             nn.ReLU(),
             nn.BatchNorm2d(out_channels)
         )
-        self.conv = Double_Conv(in_channels, out_channels)
+        self.conv = Double_Conv(out_channels * 2, out_channels)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
         # input is CHW
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
-
+        
         x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
         # if you have padding issues, see
@@ -82,10 +82,10 @@ class Up(nn.Module):
         return x
 
 class Out_Conv(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, n_classes):
         super().__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.conv = nn.Conv2d(in_channels, n_classes, kernel_size=1)
 
     def forward(self, x):
         x = self.conv(x)
-        return self.conv(x)
+        return x
