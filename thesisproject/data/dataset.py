@@ -22,7 +22,7 @@ class Dataset2D(Dataset):
     def __getitem__(self, index):
         img_path = os.path.join(self.img_dir, self._file_names[index])
         label_path = os.path.join(self.labels_dir, self._file_names[index])
-
+        
         image = torch.from_numpy(imread(img_path))
         if len(image.size()) > 2:
             image = image.permute(2, 0, 1)

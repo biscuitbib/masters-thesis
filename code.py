@@ -1,10 +1,8 @@
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('TkAgg')
 
 import torch
 import torch.nn as nn
@@ -28,7 +26,7 @@ def prepare_data():
     if not os.path.exists(os.path.join("pet_data", "images")):
         os.mkdir(os.path.join("pet_data", "images"))
 
-        img_path = "/Users/niklas/Documents/DIKU/Master's Thesis/oxford-iiit-pet/images"
+        img_path = "../oxford-iiit-pet/images"
 
         for filename in tqdm(os.listdir(img_path)):
             if filename.endswith(".jpg"):
@@ -43,7 +41,7 @@ def prepare_data():
     if not os.path.exists(os.path.join("pet_data", "labels")):
         os.mkdir(os.path.join("pet_data", "labels"))
 
-        labels_path = "/Users/niklas/Documents/DIKU/Master's Thesis/oxford-iiit-pet/annotations/trimaps"
+        labels_path = "../oxford-iiit-pet/annotations/trimaps"
 
         for filename in tqdm(os.listdir(labels_path)):
             im = Image.open(os.path.join(labels_path, filename))
@@ -73,8 +71,8 @@ class Subtract:
 if __name__ == "__main__":
     prepare_data()
 
-    transform = T.Compose([Square_pad(), T.Resize((256, 256), torchvision.transforms.InterpolationMode.NEAREST)])
-    target_transform = T.Compose([Square_pad(fill=2), T.Resize((256, 256), torchvision.transforms.InterpolationMode.NEAREST), Subtract()])
+    transform = T.Compose([Square_pad(), T.Resize((200, 200), torchvision.transforms.InterpolationMode.NEAREST)])
+    target_transform = T.Compose([Square_pad(fill=2), T.Resize((200, 200), torchvision.transforms.InterpolationMode.NEAREST), Subtract()])
 
     data = Dataset2D("pet_data/images", "pet_data/labels", transform=transform,
     target_transform=target_transform)
@@ -97,6 +95,8 @@ if __name__ == "__main__":
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
+            inputs = inputs.float()
+            labels = labels.float()
 
             # zero the parameter gradients
             optimizer.zero_grad()
