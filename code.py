@@ -71,8 +71,8 @@ class Subtract:
 if __name__ == "__main__":
     prepare_data()
 
-    transform = T.Compose([Square_pad(), T.Resize((200, 200), torchvision.transforms.InterpolationMode.NEAREST)])
-    target_transform = T.Compose([Square_pad(fill=2), T.Resize((200, 200), torchvision.transforms.InterpolationMode.NEAREST), Subtract()])
+    transform = T.Compose([Square_pad(), T.Resize((256, 256), torchvision.transforms.InterpolationMode.NEAREST)])
+    target_transform = T.Compose([Square_pad(fill=2), T.Resize((256, 256), torchvision.transforms.InterpolationMode.NEAREST), Subtract()])
 
     data = Dataset2D("pet_data/images", "pet_data/labels", transform=transform,
     target_transform=target_transform)
@@ -80,32 +80,31 @@ if __name__ == "__main__":
     test_len = len(data) - train_len
     train, test = random_split(data, [train_len, test_len])
 
-    train_loader = DataLoader(train, shuffle=True, batch_size=16, num_workers=4)
-    test_loader = DataLoader(test, shuffle=False, batch_size=16, num_workers=4)
+    train_loader = DataLoader(train, shuffle=True, batch_size=128, num_workers=4)
+    test_loader = DataLoader(test, shuffle=False, batch_size=128, num_workers=4)
 
     ## Train
     width_out = height_out = width_in = height_in = 256
+    
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     net = UNet(3, 3)
+    net.to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
-    for epoch in range(10):  # loop over the dataset multiple times
+    for epoch in tqdm(range(10)):  # loop over the dataset multiple times
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
-            inputs = inputs.float()
-            labels = labels.float()
+            inputs, labels = data[0].float().to(device), data[1].float().to(device)
+            print(inputs.shape, labels.shape)
 
             # zero the parameter gradients
             optimizer.zero_grad()
 
             # forward + backward + optimize
             outputs = net(inputs)
-            m = outputs.shape[0]
-            outputs = outputs.resize(m*width_out*height_out, 2)
-            labels = labels.resize(m*width_out*height_out)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
