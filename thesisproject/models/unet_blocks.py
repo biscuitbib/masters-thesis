@@ -40,7 +40,7 @@ class Down(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.pool_conv = nn.Sequential(
-            nn.MaxPool2d(),
+            nn.MaxPool2d(kernel_size=2),
             Double_Conv(in_channels, out_channels)
         )
 
@@ -55,15 +55,14 @@ class Up(nn.Module):
         self.up = nn.Sequential(
             nn.Upsample(
                 scale_factor=2,
-                mode='nearest',
-                align_corners=True),
+                mode='nearest'),
             nn.Conv2d(
                 in_channels,
                 out_channels,
                 kernel_size=2,
                 padding="same"),
             nn.ReLU(),
-            nn.BatchNorm2d()
+            nn.BatchNorm2d(out_channels)
         )
         self.conv = Double_Conv(in_channels, out_channels)
 
