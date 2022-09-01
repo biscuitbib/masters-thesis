@@ -13,23 +13,22 @@ class Dataset2D(Dataset):
         self.labels_dir = labels_dir
         self.transform = transform
         self.target_transform = target_transform
-        self._file_names = os.listdir(img_dir)
-        self._len = len(self._file_names)
+        self._img_names = sorted(os.listdir(img_dir))
+        self._label_names = sorted(os.listdir(labels_dir))
+        self._len = len(self._img_names)
 
     def __len__(self):
         return self._len
 
     def __getitem__(self, index):
-        img_path = os.path.join(self.img_dir, self._file_names[index])
-        label_path = os.path.join(self.labels_dir, self._file_names[index])
+        img_path = os.path.join(self.img_dir, self._img_names[index])
+        label_path = os.path.join(self.labels_dir, self._label_names[index])
 
-        image = torch.from_numpy(imread(img_path))
-        if len(image.size()) > 2:
-            image = image.permute(2, 0, 1)
-        else:
-            image = torch.unsqueeze(image, dim=0)
+        image = imread(img_path)
+        image = torch.from_numpy(image.astype(np.float32)).permute(2, 0, 1)
 
-        label = torch.from_numpy(imread(label_path)).unsqueeze(dim=0)
+        label = imread(label_path)#torch.from_numpy(imread(label_path)).unsqueeze(dim=0)
+        label = torch.from_numpy(label.astype(np.long)).unsqueeze(dim=0)
 
         if self.transform:
             image = self.transform(image)
