@@ -1,26 +1,22 @@
-#!/usr/local/bin/python3
 import os
 
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 import torch
-import torch.nn as nn
-import torch.functional as F
-import torch.optim as optim
-from torch import Tensor
-import torchvision
+from torch import Tensor, nn, optim
 import torchvision.transforms as T
 from torchvision.transforms.functional import pad
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
+from skimage.io import imread, imsave
+from tqdm import tqdm
 
 from thesisproject.data import Dataset2D
 from thesisproject.models import UNet
-from PIL import Image
-from skimage.io import imread, imsave
-from tqdm import tqdm
+
 
 def prepare_data():
     if not os.path.exists("pet_data"):
@@ -49,7 +45,7 @@ def prepare_data():
             im = imread(os.path.join(labels_path, filename))
             path = os.path.join("pet_data/labels/" , filename)
             imsave(path, im)
-            
+
 class Square_pad:
     def __init__(self, fill=0):
         self.fill=fill
@@ -61,38 +57,76 @@ class Square_pad:
 
         padding = [0, 0, 0, 0]
         padding[pad_edge] = pad_amount
-        
+
         padded_im = pad(image, padding, fill=self.fill)
         return padded_im
-    
+
 class Normalize:
     def __call__(self, image):
         return image / torch.max(image)
-    
+
 class Squeeze:
     def __call__(self, image):
         return image.squeeze()
-    
+
 colors = np.array([[np.random.randint(255), np.random.randint(255), np.random.randint(255)] for _ in range(59)])
 
 def segmentation_to_rgb(image):
     preds = torch.argmax(image, dim=1)
-    pred_imgs = torch.tensor([colors[p] for p in preds]).permute(0,3,1,2)
+    pred_imgs = np.array([colors[p] for p in preds])
+    pred_imgs = torch.tensor(pred_imgs).permute(0,3,1,2)
     return pred_imgs
 
 def mask_to_rgb(image):
-    mask_imgs = torch.tensor([colors[p] for p in image]).permute(0,3,1,2)
+    mask_imgs = np.array([colors[p] for p in image])
+    mask_imgs = torch.tensor(mask_imgs).permute(0,3,1,2)
     return mask_imgs
 
+def create_animation(image, dim=0):
+    h, w, d = image.shape
+
+    fig, ax = plt.subplots()
+
+    x = np.arange(0, 2*np.pi, 0.01)
+
+
+    frames = []
+    if dim == 0:
+        for i in range(h):
+            im = ax.imshow(image[i, :, :])
+            frames.append([im])
+    elif dim == 1:
+        for i in range(w):
+            im = ax.imshow(image[:, i, :])
+            frames.append([im])
+    elif dim == 2:
+        for i in range(d):
+            im = ax.imshow(image[:, :, i])
+            frames.append([im])
+
+
+    ani = animation.ArtistAnimation(fig, frames, interval=50, blit=True, repeat_delay=1000)
+
+    ani.save(f"dim_{dim}.mp4")
+
 if __name__ == "__main__":
+    path = "../ScanManTrim/010371-001-L-Turbo 3D T1, 1-2004.mat"
+    from scipy.io import loadmat
+
+    image = torch.from_numpy(loadmat(path)["scan"])
+    print(image.shape, image.unfold(0, 1, 1).shape)
+
+    exit()
+
+
     writer = SummaryWriter()
-    
+
     transform = T.Compose([Square_pad(), T.Resize((256, 256)), Normalize()])
     target_transform = T.Compose([Square_pad(), T.Resize((256, 256)), Squeeze()])
 
     data = Dataset2D("../clothes_data/png_images/IMAGES/", "../clothes_data/png_masks/MASKS/", transform=transform,
     target_transform=target_transform)
-    
+
     # 8-2 train test split
     train_len = int(len(data) * 0.3)
     test_len = len(data) - train_len
@@ -103,7 +137,7 @@ if __name__ == "__main__":
 
     ## Train
     width_out = height_out = width_in = height_in = 256
-    
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print("device: ", device)
     net = UNet(3, 59)
@@ -136,7 +170,7 @@ if __name__ == "__main__":
             current_loss = loss.item() / batch_samples
             running_loss += current_loss
             num_batches += 1
-                
+
             pbar.update(inputs.shape[0])
         else:
             input_imgs = inputs.cpu()
@@ -145,7 +179,7 @@ if __name__ == "__main__":
             writer.add_images("images/inputs", input_imgs, epoch)
             writer.add_images("images/targets", target_imgs, epoch)
             writer.add_images("images/predictions", pred_imgs, epoch)
-            
+
         writer.add_scalar("loss/train", running_loss/num_batches, epoch)
-            
+
     print('Finished Training')
