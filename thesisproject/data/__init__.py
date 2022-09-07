@@ -1,1 +1,1 @@
-from .dataset import Dataset2D
+from .dataset import Dataset2D, ImageData, SliceLoader
