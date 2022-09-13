@@ -10,6 +10,7 @@ from skimage.io import imread, imsave
 from tqdm import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb, grayscale_to_rgb
 
@@ -130,5 +131,14 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
     print('Finished Training')
 
 def train(net, train_loader, val_loader):
-    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="loss/validation", mode="min")])
-    trainer.fit(model=net, train_dataloaders=train_loader, val_dataloaders=val_loader)
+    logger = TensorBoardLogger("runs", name="unet")
+    trainer = pl.Trainer(
+        logger=logger,
+        callbacks=[EarlyStopping(monitor="loss/validation", mode="min")],
+        profiler="simple"
+    )
+    trainer.fit(
+        model=net,
+        train_dataloaders=train_loader,
+        val_dataloaders=val_loader
+    )
