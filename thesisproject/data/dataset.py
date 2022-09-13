@@ -1,14 +1,14 @@
 import os
+import sys
 import numpy as np
 
 import torch
-import torchio as tio
 import torchvision.transforms as T
 from torch.utils.data import Dataset, DataLoader
 import nibabel as nib
 from skimage.io import imread
 
-
+"""
 class Dataset2D(Dataset):
     def __init__(self, img_dir: str, labels_dir: str, transform=None, target_transform=None):
         self.img_dir = img_dir
@@ -36,8 +36,9 @@ class Dataset2D(Dataset):
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
-
+            
         return image, label
+"""
 
 class ImageData(Dataset):
     """
@@ -47,7 +48,7 @@ class ImageData(Dataset):
     TODO
     Add queue to load more image pairs into memory, instead of loading as needed.
     """
-    def __init__(self, base_dir, transform=None, target_transform=None):
+    def __init__(self, base_dir, transform=None, target_transform=None, num_access=1):
         self.img_dir = os.path.join(base_dir, "images")
         self.label_dir = os.path.join(base_dir, "labels")
         self.filenames = sorted(os.listdir(self.img_dir))
@@ -55,28 +56,37 @@ class ImageData(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         
+        self.dataset_len = len(self.filenames)
+        self.num_access = num_access
+        
     def __len__(self):
-        return len(self.filenames)
+        return self.dataset_len * self.num_access
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.filenames[idx])
-        label_path = os.path.join(self.label_dir, self.filenames[idx])
+        file_idx = idx % self.dataset_len
         
-        image = nib.load(img_path).get_fdata()#tio.ScalarImage(img_path)
+        img_path = os.path.join(self.img_dir, self.filenames[file_idx])
+        label_path = os.path.join(self.label_dir, self.filenames[file_idx])
+        
+        image = nib.load(img_path).get_fdata()
         label = nib.load(label_path).get_fdata()
         
+        image = torch.from_numpy(image).float()
+        label = torch.from_numpy(label).long()
+        
         if self.transform:
-             image = self.transform(image)
+            image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
-            
-        return torch.from_numpy(image), torch.from_numpy(label)
+        
+        return image, label
 
 
 class SliceLoader(DataLoader):
     def __init__(self, dataset, slices_per_batch=16, volumes_per_batch=8, *dataloader_args, **dataloader_kwargs):
         self.slices_per_batch = slices_per_batch
         self.volumes_per_batch = volumes_per_batch
+        self.transform = T.Resize(150)
         super().__init__(
             dataset,
             *dataloader_args, 
@@ -101,18 +111,19 @@ class SliceLoader(DataLoader):
             permute_idx = np.random.choice(3)
             axis_to_permute = [[0, 1, 2], [1, 0, 2], [2, 0, 1]][permute_idx]
             
-            image, label = image.permute(axis_to_permute), label.permute(axis_to_permute)
+            image = image.permute(axis_to_permute)
+            label = label.permute(axis_to_permute)
             
             slice_depth = np.random.randint(image.shape[0])
             
-            image, label = image[slice_depth, :, :], label[slice_depth, :, :]
+            image = image[slice_depth, :, :]
+            label = label[slice_depth, :, :]
             
             if torch.sum(label) == 0:
                 continue
                 
             image_slices.append(image.unsqueeze(dim=0))
             label_slices.append(label.unsqueeze(dim=0))
-            
             
         image_slices = torch.cat(image_slices).unsqueeze(dim=1).float()
         label_slices = torch.cat(label_slices).long()

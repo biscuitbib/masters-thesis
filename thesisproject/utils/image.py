@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
-colors = np.array([[np.random.randint(255), np.random.randint(255), np.random.randint(255)] for _ in range(4)])
+colors = np.array([[np.random.randint(255), np.random.randint(255), np.random.randint(255)] for _ in range(10)])
 colors[0] = np.array([255, 255, 255])
 
 def segmentation_to_rgb(image):
@@ -17,6 +17,10 @@ def mask_to_rgb(image):
     mask_imgs = np.array([colors[p] for p in image])
     mask_imgs = torch.tensor(mask_imgs).permute(0,3,1,2)
     return mask_imgs
+
+def grayscale_to_rgb(image):
+    image = image.repeat(1, 3, 1, 1)
+    return image
 
 def create_animation(image, dim=0):
     h, w, d = image.shape
