@@ -21,9 +21,13 @@ def prepare_input_and_target(pred, target):
     
 
 
-def get_metrics(pred, target):
+def get_metrics(pred, target, remove_bg=False):
     pred, target = prepare_input_and_target(pred, target)
     
+    if remove_bg:
+        pred = pred[:, 1:, :, :]
+        target = target[:, 1:, :, :]
+        
     tn, fp, fn, tp = confusion_matrix(pred.flatten(), target.flatten()).ravel()
     
     eps = 1e-6
