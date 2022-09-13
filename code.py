@@ -15,10 +15,11 @@ from torch.utils.tensorboard import SummaryWriter
 from skimage.io import imread, imsave
 from tqdm import tqdm
 
+
 from thesisproject.data import ImageData, SliceLoader
-from thesisproject.models import UNet
+from thesisproject.models import UNet, LitUNet
 from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb
-from thesisproject.train import training_loop
+from thesisproject.train import training_loop, train
 
 class Square_pad:
     def __init__(self, fill=0):
@@ -43,14 +44,16 @@ if __name__ == "__main__":
 
     train_data = ImageData(path + "train", transform=transform, target_transform=transform, num_access=5)
     val_data = ImageData(path + "val", transform=transform, target_transform=transform, num_access=5)
-    
+
     train_loader = SliceLoader(train_data, slices_per_batch=8, volumes_per_batch=4, shuffle=True, num_workers=4, pin_memory=False)
     val_loader = SliceLoader(train_data, slices_per_batch=8, volumes_per_batch=4, shuffle=False, num_workers=4, pin_memory=False)
 
     ## Train
-    net = UNet(1, 10)
+    net = LitUNet(1, 10)
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net.parameters(), lr=5e-5)
+    #criterion = nn.CrossEntropyLoss()
+    #optimizer = optim.Adam(net.parameters(), lr=5e-5)
 
-    training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=100, cont=True)
+    #training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=100, cont=True)
+
+    train(net, train_loader, val_loader)

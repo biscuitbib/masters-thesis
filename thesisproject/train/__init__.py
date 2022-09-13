@@ -1,1 +1,1 @@
-from .train import training_loop
+from .train import training_loop, train
