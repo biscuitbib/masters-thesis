@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     train_data = ImageData(path + "train", transform=transform, target_transform=transform, num_access=5)
     val_data = ImageData(path + "val", transform=transform, target_transform=transform, num_access=5)
-    
+
     train_loader = SliceLoader(train_data, slices_per_batch=8, volumes_per_batch=4, shuffle=True, num_workers=4, pin_memory=False)
     val_loader = SliceLoader(train_data, slices_per_batch=8, volumes_per_batch=4, shuffle=False, num_workers=4, pin_memory=False)
 
