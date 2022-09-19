@@ -9,9 +9,6 @@ import nibabel as nib
 from skimage.io import imread
 import elasticdeform.torch as etorch
 
-class ImagePair:
-    def __init__(self, img_path, label_path)
-
 class ImageData(Dataset):
     """
     Class for dataset of 2D slices of 3D images.
@@ -50,9 +47,6 @@ class ImageData(Dataset):
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
-
-        if np.random.random > 1/3:
-            [image, label] = etorch.deform_random_grid([image, label], sigma=np.random.uniform(20, 30))
 
         return image, label
 
@@ -108,10 +102,19 @@ class ImageQueue(IterableDataset):
 
 
 class SliceLoader(DataLoader):
-    def __init__(self, dataset, slices_per_batch=16, volumes_per_batch=8, *dataloader_args, **dataloader_kwargs):
+    def __init__(
+        self, dataset,
+        slices_per_batch=16,
+        volumes_per_batch=8,
+        augment=False,
+        *dataloader_args,
+        **dataloader_kwargs
+        ):
         self.slices_per_batch = slices_per_batch
         self.volumes_per_batch = volumes_per_batch
-        self.transform = T.Resize(150)
+
+        self.augment = augment
+
         super().__init__(
             dataset,
             *dataloader_args,
@@ -128,10 +131,12 @@ class SliceLoader(DataLoader):
         """
         image_slices = []
         label_slices = []
+        weights = []
         while len(image_slices) < self.slices_per_batch:
             idx = min(len(batch) - 1, np.random.randint(self.volumes_per_batch))
             imagepair = batch[idx]
             image, label = imagepair[0], imagepair[1]
+            weight = 1.
 
             permute_idx = np.random.choice(3)
             axis_to_permute = [[0, 1, 2], [1, 0, 2], [2, 0, 1]][permute_idx]
@@ -147,10 +152,21 @@ class SliceLoader(DataLoader):
             if torch.sum(label) == 0:
                 continue
 
+            if self.augment:
+                if np.random.random() <= 1/3:
+                    displacement_val = np.random.randn(2, 3, 3) * 5.
+                    displacement = torch.tensor(displacement_val)
+                    [image, label] = etorch.deform_grid([image, label], displacement, order=3)
+                    weight = 1/3
+
+                image /= torch.max(image)
+
             image_slices.append(image.unsqueeze(dim=0))
             label_slices.append(label.unsqueeze(dim=0))
+            weights.append(weight)
 
         image_slices = torch.cat(image_slices).unsqueeze(dim=1).float()
         label_slices = torch.cat(label_slices).long()
+        weights = torch.tensor(weights)
 
-        return image_slices, label_slices
+        return image_slices, label_slices, weights

@@ -13,20 +13,19 @@ from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb, g
 
 def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False):
     writer = SummaryWriter()
-    print(writer)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     net.to(device)
-    
+
     checkpoint_path = os.path.join("model_saves", "model_checkpoint.pt")
     model_path = os.path.join("model_saves", "model.pt")
     start_epoch = 0
-    
+
     if cont:
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
-        
+
     net.train()
 
     for epoch in range(start_epoch, num_epochs):  # loop over the dataset multiple times
@@ -59,7 +58,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             pbar.update(1)
 
         pbar.set_description(f"training loss epoch {epoch}: {round(train_loss/num_batches, 3)}")
-        
+
         # Validation
         with torch.no_grad():
             val_loss = 0.0
@@ -99,7 +98,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             pred_imgs = segmentation_to_rgb(outputs.cpu())
             target_imgs = mask_to_rgb(labels.cpu())
             imgs = torch.cat((input_imgs, target_imgs, pred_imgs), dim=2)
-            
+
             writer.add_images("images/val", imgs[:4, ...], epoch)
             #writer.add_images("images/val_inputs", input_imgs[:4, ...], epoch)
             #writer.add_images("images/val_targets", target_imgs[:4, ...], epoch)
@@ -113,16 +112,16 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
             writer.add_scalar("loss/train", train_loss/num_batches, epoch)
             writer.add_scalar("loss/validation", val_loss/num_val_batches, epoch)
-            
+
         # Save model checkpoints
         torch.save({
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict()
         }, checkpoint_path)
-            
-    
+
+
     # Save final model
     torch.save(model.state_dict(), model_path)
-    
+
     print('Finished Training')
