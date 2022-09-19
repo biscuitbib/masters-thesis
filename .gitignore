@@ -134,3 +134,4 @@ runs/*
 model_saves/*
 pet_data/
 *.mp4
+*.mat
