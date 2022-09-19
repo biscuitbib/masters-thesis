@@ -6,6 +6,7 @@ import torchvision.transforms as T
 from torchvision.transforms.functional import pad
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from skimage.io import imread, imsave
 from tqdm import tqdm
 
@@ -25,7 +26,9 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
         net.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
+        print(f"Continuing training from epoch {start_epoch}")
 
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2)
     net.train()
 
     for epoch in range(start_epoch, num_epochs):  # loop over the dataset multiple times
@@ -80,7 +83,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
                 # save statistics
                 batch_samples = inputs.shape[0]
                 current_loss = loss.item() / batch_samples
-                metrics = get_metrics(outputs, labels, remove_bg=True)
+                metrics = get_metrics(outputs.detach().cpu(), labels.detach().cpu(), net.n_classes, remove_bg=True)
 
                 val_loss += current_loss
                 val_accuracy += metrics["accuracy"]
@@ -119,9 +122,21 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict()
         }, checkpoint_path)
+<<<<<<< HEAD
 
 
     # Save final model
     torch.save(model.state_dict(), model_path)
 
+=======
+
+        # Step learning rate scheduler
+        scheduler.step(val_loss/num_val_batches)
+
+
+    # Save final model
+    torch.save(model.state_dict(), model_path)
+    pbar.close()
+
+>>>>>>> 7739104b81edc8036ddb2ddbc9a10ef47383fde1
     print('Finished Training')

@@ -4,6 +4,7 @@ import numpy as np
 from queue import Queue
 import torch
 import torchvision.transforms as T
+from torchvision.transforms import InterpolationMode
 from torch.utils.data import IterableDataset,  Dataset, DataLoader
 import nibabel as nib
 from skimage.io import imread
@@ -154,12 +155,13 @@ class SliceLoader(DataLoader):
 
             if self.augment:
                 if np.random.random() <= 1/3:
-                    displacement_val = np.random.randn(2, 3, 3) * 5.
+                    displacement_val = np.random.randn(2, 5, 5) * 5.
                     displacement = torch.tensor(displacement_val)
-                    [image, label] = etorch.deform_grid([image, label], displacement, order=3)
+                    [image, label] = etorch.deform_grid([image, label], displacement, order=0)
                     weight = 1/3
 
-                image /= torch.max(image)
+                image -= image.min()
+                image /= image.max()
 
             image_slices.append(image.unsqueeze(dim=0))
             label_slices.append(label.unsqueeze(dim=0))
@@ -169,4 +171,6 @@ class SliceLoader(DataLoader):
         label_slices = torch.cat(label_slices).long()
         weights = torch.tensor(weights)
 
-        return image_slices, label_slices, weights
+        #print(torch.min(image_slices), torch.max(image_slices))
+
+        return image_slices, label_slices
