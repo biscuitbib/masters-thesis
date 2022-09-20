@@ -155,7 +155,7 @@ class SliceLoader(DataLoader):
 
             if self.augment:
                 if np.random.random() <= 1/3:
-                    displacement_val = np.random.randn(2, 5, 5) * 5.
+                    displacement_val = np.random.randn(2, 3, 3) * 10.
                     displacement = torch.tensor(displacement_val)
                     [image, label] = etorch.deform_grid([image, label], displacement, order=0)
                     weight = 1/3

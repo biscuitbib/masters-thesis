@@ -43,34 +43,34 @@ if __name__ == "__main__":
     volume_transform = Square_pad()
 
     train_data = ImageData(
-        path + "train", 
-        transform=volume_transform, 
-        target_transform=volume_transform, 
+        path + "train",
+        transform=volume_transform,
+        target_transform=volume_transform,
         num_access=3
     )
     val_data = ImageData(
-        path + "val", 
-        transform=volume_transform, 
-        target_transform=volume_transform, 
+        path + "val",
+        transform=volume_transform,
+        target_transform=volume_transform,
         num_access=1
     )
 
     train_loader = SliceLoader(
-        train_data, 
-        slices_per_batch=8, 
+        train_data,
+        slices_per_batch=8,
         volumes_per_batch=2,
         augment=True,
-        shuffle=True, 
-        num_workers=1, 
+        shuffle=True,
+        num_workers=1,
         pin_memory=True
     )
     val_loader = SliceLoader(
-        val_data, 
-        slices_per_batch=8, 
+        val_data,
+        slices_per_batch=8,
         volumes_per_batch=2,
         augment=True,
-        shuffle=False, 
-        num_workers=1, 
+        shuffle=False,
+        num_workers=1,
         pin_memory=True
     )
 
@@ -82,32 +82,31 @@ if __name__ == "__main__":
 
     #torch.backends.cudnn.enabled = False
     training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=100, cont=False)
-    
+
     """
     with torch.no_grad():
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         net.to(device)
-        
+
         checkpoint_path = os.path.join("model_saves", "model_checkpoint_first.pt")
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint['model_state_dict'])
-    
+
         path = "../ScanManTrain61_knee_data/"
 
         test_data = ImageData(
-            path + "test", 
-            transform=volume_transform, 
-            target_transform=volume_transform, 
+            path + "test",
+            transform=volume_transform,
+            target_transform=volume_transform,
             num_access=1
         )
 
         test_loader = DataLoader(
             test_data,
             batch_size=1,
-            shuffle=False, 
+            shuffle=False,
             num_workers=1
         )
-        
+
         test_loop(net, test_loader)
     """
-        

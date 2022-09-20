@@ -1,16 +1,15 @@
 import os
 import torch
-from torch import Tensor, nn, optim
-import torch.nn.functional as F
-import torchvision.transforms as T
 from torchvision.transforms.functional import pad
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from skimage.io import imread, imsave
 from tqdm import tqdm
 
 from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb, grayscale_to_rgb
+
+def tensorboard_log()
 
 def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False):
     writer = SummaryWriter()
@@ -23,7 +22,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
     if cont:
         checkpoint = torch.load(checkpoint_path)
-        net.load_state_dict(checkpoint['model_state_dict'])
+        net.load_state_dict(checkpoint['model_state_dict'], map_location=device)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
         print(f"Continuing training from epoch {start_epoch}")
@@ -38,7 +37,6 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
         train_loss = 0.0
         num_batches = 0
         for i, data in enumerate(train_loader, 0):
-            # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data[0].to(device), data[1].to(device)
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -122,21 +120,13 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict()
         }, checkpoint_path)
-<<<<<<< HEAD
-
-
-    # Save final model
-    torch.save(model.state_dict(), model_path)
-
-=======
 
         # Step learning rate scheduler
         scheduler.step(val_loss/num_val_batches)
 
 
     # Save final model
-    torch.save(model.state_dict(), model_path)
+    torch.save(net.state_dict(), model_path)
     pbar.close()
 
->>>>>>> 7739104b81edc8036ddb2ddbc9a10ef47383fde1
     print('Finished Training')
