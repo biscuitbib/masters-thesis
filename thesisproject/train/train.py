@@ -37,6 +37,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
         train_loss = 0.0
         num_batches = 0
         for i, data in enumerate(train_loader, 0):
+            print(data)
             inputs, labels = data[0].to(device), data[1].to(device)
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -58,7 +59,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             #pbar.update(inputs.shape[0])
             pbar.update(1)
 
-        pbar.set_description(f"training loss epoch {epoch}: {round(train_loss/num_batches, 3)}")
+        #pbar.set_description(f"training loss epoch {epoch}: {round(train_loss/num_batches, 3)}")
 
         # Validation
         with torch.no_grad():

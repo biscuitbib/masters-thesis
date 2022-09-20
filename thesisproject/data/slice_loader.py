@@ -24,7 +24,8 @@ class SliceLoader(DataLoader):
         self.image_transform = image_transform
         self.label_transform = label_transform
 
-        total_image_access = (self.slices_per_epoch // slices_per_batch) * self.volumes_per_batch
+        self.num_batches = self.slices_per_epoch // slices_per_batch
+        total_image_access = self.num_batches * self.volumes_per_batch
 
         self.dataset_queue.set_len(total_image_access)
 
@@ -32,25 +33,21 @@ class SliceLoader(DataLoader):
             dataset_queue,
             *dataloader_args,
             **dataloader_kwargs,
-            batch_size=self.volumes_per_batch,
+            batch_size=1,
             collate_fn=self.collate_slices
         )
 
-    def collate_slices(self, batch):
+    def collate_slices(self, image_queue):
         """
         Get n slices for randomly selected m volumes, along random axes.
         Image batch must have shape: B x C x H x W
         Label batch must have shape: B x H x W
         """
-        print(batch)
         image_slices = []
         label_slices = []
         while len(image_slices) < self.slices_per_batch:
-            idx = min(len(batch) - 1, np.random.randint(self.volumes_per_batch))
-            imagepair = batch[idx]
-            print(imagepair)
+            imagepair = next(image_queue[0])
             image, label = imagepair.image, imagepair.label
-            weight = 1.
 
             permute_idx = np.random.choice(3)
             axis_to_permute = [[0, 1, 2], [1, 0, 2], [2, 0, 1]][permute_idx]
@@ -71,17 +68,15 @@ class SliceLoader(DataLoader):
                     displacement_val = np.random.randn(2, 5, 5) * 5.
                     displacement = torch.tensor(displacement_val)
                     [image, label] = etorch.deform_grid([image, label], displacement, order=0)
-                    weight = 1/3
+                    imagepair.sample_weight = 1/3
 
                 image -= image.min()
                 image /= image.max()
 
             image_slices.append(image.unsqueeze(dim=0))
             label_slices.append(label.unsqueeze(dim=0))
-            weights.append(weight)
 
         image_slices = torch.cat(image_slices).unsqueeze(dim=1).float()
         label_slices = torch.cat(label_slices).long()
-        weights = torch.tensor(weights)
 
         return image_slices, label_slices

@@ -1,3 +1,4 @@
+import numpy as np
 import nibabel as nib
 import torch
 from pathlib import Path
@@ -9,7 +10,7 @@ class ImagePair:
     """
     def __init__(self, image_path, label_path=None, sample_weight=1.0, image_transform=None, label_transform=None):
         self.predict_mode = not label_path
-
+        
         self.sample_weight = sample_weight
         self.image_transform = image_transform
         self.label_transform = label_transform
@@ -46,7 +47,7 @@ class ImagePair:
     @property
     def image(self):
         if self._image is None:
-            self._image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged', dtype=self.im_dtype))
+            self._image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
 
             if self.image_transform:
                 self._image = self.image_transform(self._image)
@@ -59,18 +60,17 @@ class ImagePair:
         return self._image
 
     @property
-    def labels(self):
+    def label(self):
         """ Like self.image """
-        if self._label is None:
-            try:
-                self._label = torch.from_numpy(self.label_obj.get_fdata(caching="unchanged", dtype=self.lab_dtype))
+        if self.predict_mode:
+            return None
+        else:
+            self._label = torch.from_numpy(self._label_obj.get_fdata(caching="unchanged")).type(self.lab_dtype)
 
-                if self.label_transform:
-                    self._label = self.label_transform(self._label)
-
-            except AttributeError:
-                return None
-        return self._label
+            if self.label_transform:
+                self._label = self.label_transform(self._label)
+            
+            return self._label
 
     def load(self):
         self.image

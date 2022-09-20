@@ -51,7 +51,7 @@ class ImagePairDataset(Dataset):
                 image_objects.append(image)
         else:
             for img_path, label_path in zip(self.image_paths, self.label_paths):
-                image = ImagePair(self.image_dir / img_path, self.label_dir / label_path, sample_weight=1.0)
+                image = ImagePair(self.image_dir / img_path, label_path=self.label_dir / label_path, sample_weight=1.0)
                 image_objects.append(image)
 
         return image_objects
