@@ -159,7 +159,7 @@ class SliceLoader(DataLoader):
                     displacement = torch.tensor(displacement_val)
                     [image, label] = etorch.deform_grid([image, label], displacement, order=0)
                     weight = 1/3
-                
+
                 image -= image.min()
                 image /= image.max()
 
@@ -170,7 +170,7 @@ class SliceLoader(DataLoader):
         image_slices = torch.cat(image_slices).unsqueeze(dim=1).float()
         label_slices = torch.cat(label_slices).long()
         weights = torch.tensor(weights)
-        
+
         #print(torch.min(image_slices), torch.max(image_slices))
 
         return image_slices, label_slices
