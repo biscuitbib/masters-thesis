@@ -1,10 +1,8 @@
 import os
-
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
 import torch
 from torch import Tensor, nn, optim
 import torch.nn.functional as F
@@ -35,12 +33,15 @@ class Square_pad:
 
         padded_im = F.pad(image, padding, "constant", self.fill)
         return padded_im
-
+    
+class Flip:
+    def __call__(self, image):
+        return torch.flip(image, [0])
 
 if __name__ == "__main__":
     path = "../ScanManTrain61_knee_data/"
 
-    volume_transform = Square_pad()
+    volume_transform = T.Compose([Square_pad(), Flip()])
 
     train_data = ImageData(
         path + "train", 
@@ -75,13 +76,13 @@ if __name__ == "__main__":
     )
 
     ## Train
-    net = UNet(1, 10)
+    net = UNet(1, 9)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=5e-5)
 
     #torch.backends.cudnn.enabled = False
-    training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=100, cont=False)
+    training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=1000, cont=True)
     
     """
     with torch.no_grad():
