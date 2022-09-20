@@ -1,7 +1,5 @@
 import os
 import torch
-from torchvision.transforms.functional import pad
-from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from skimage.io import imread, imsave
@@ -9,30 +7,32 @@ from tqdm import tqdm
 
 from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb, grayscale_to_rgb
 
-def tensorboard_log()
-
 def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False):
     writer = SummaryWriter()
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     net.to(device)
 
+    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
+
+    # Load checkpoint if continuing
     checkpoint_path = os.path.join("model_saves", "model_checkpoint.pt")
     model_path = os.path.join("model_saves", "model.pt")
     start_epoch = 0
 
     if cont:
         checkpoint = torch.load(checkpoint_path)
-        net.load_state_dict(checkpoint['model_state_dict'], map_location=device)
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
+        net.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        start_epoch = checkpoint["epoch"]
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         print(f"Continuing training from epoch {start_epoch}")
 
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2)
+
+    # Training
     net.train()
 
-    for epoch in range(start_epoch, num_epochs):  # loop over the dataset multiple times
-
-        # Training loop
+    for epoch in range(start_epoch, num_epochs):
         pbar = tqdm(total=len(train_loader), position=0, leave=True)
         train_loss = 0.0
         num_batches = 0
@@ -111,19 +111,20 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             writer.add_scalar("validation_metrics/specificity", val_specificity/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/dice", val_dice/num_val_batches, epoch)
 
-            writer.add_scalar("loss/train", train_loss/num_batches, epoch)
             writer.add_scalar("loss/validation", val_loss/num_val_batches, epoch)
+
+            writer.add_scalar("loss/train", train_loss/num_batches, epoch)
 
         # Save model checkpoints
         torch.save({
-            'epoch': epoch,
-            'model_state_dict': net.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
+            "epoch": epoch,
+            "model_state_dict": net.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict()
         }, checkpoint_path)
 
         # Step learning rate scheduler
-        scheduler.step(val_loss/num_val_batches)
-
+        scheduler.step(val_dice/num_val_batches)
 
     # Save final model
     torch.save(net.state_dict(), model_path)
