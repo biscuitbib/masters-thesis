@@ -4,8 +4,17 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
-colors = np.array([[np.random.randint(255), np.random.randint(255), np.random.randint(255)] for _ in range(10)])
-colors[0] = np.array([255, 255, 255])
+colors = np.array([
+    [0, 0, 0],
+    [228, 146, 244],
+    [229, 124, 117],
+    [184, 139, 229],
+    [118, 226, 196],
+    [159, 226, 111],
+    [35, 211, 150],
+    [123, 224, 219],
+    [31, 154, 173],
+    [81, 214, 74]])
 
 def segmentation_to_rgb(image):
     preds = torch.argmax(image, dim=1)
