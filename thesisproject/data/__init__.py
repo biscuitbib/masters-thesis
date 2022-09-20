@@ -1,4 +1,3 @@
-#from .dataset import ImageData, SliceLoader
 from .feature_extraction import extract_features
 from .image_pair_dataset import ImagePairDataset
 from .image_queue import ImageQueue

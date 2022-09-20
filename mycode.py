@@ -49,7 +49,6 @@ if __name__ == "__main__":
         train_queue,
         slices_per_batch=16,
         volumes_per_batch=8,
-        shuffle=True,
         num_workers=1,
         pin_memory=True)
 
@@ -58,9 +57,8 @@ if __name__ == "__main__":
     val_loader = SliceLoader(
         train_queue,
         slices_per_batch=16,
-        slices_per_epoch=1000
+        slices_per_epoch=1000,
         volumes_per_batch=8,
-        shuffle=False,
         num_workers=1,
         pin_memory=True)
 
@@ -71,7 +69,7 @@ if __name__ == "__main__":
     optimizer = optim.Adam(net.parameters(), lr=5e-5)
 
     #torch.backends.cudnn.enabled = False
-    training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=1000, cont=True)
+    training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=1000, cont=False)
 
     """
     with torch.no_grad():
