@@ -35,7 +35,7 @@ class ImagePairDataset(Dataset):
         paths = [Path(p) for p in filenames]
         return paths
 
-    def get_image_objects(self):
+    def _get_image_objects(self):
         """
         Initialize all ImagePair objects from paths at self.image_paths and
         self.label_paths (if labels exist). Note that data is not loaded
@@ -47,11 +47,11 @@ class ImagePairDataset(Dataset):
         image_objects = []
         if self.predict_mode:
             for img_path in self.image_paths:
-                image = ImagePair(img_path, sample_weight=1.0)
+                image = ImagePair(self.image_dir / img_path, sample_weight=1.0)
                 image_objects.append(image)
         else:
             for img_path, label_path in zip(self.image_paths, self.label_paths):
-                image = ImagePair(img_path, label_path, sample_weight=1.0)
+                image = ImagePair(self.image_dir / img_path, self.label_dir / label_path, sample_weight=1.0)
                 image_objects.append(image)
 
         return image_objects

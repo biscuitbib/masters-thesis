@@ -18,7 +18,7 @@ class ImagePair:
         if not self.predict_mode:
             self.label_path = Path(label_path)
 
-        self.identifier = self._get_identifier(image_path)
+        self.identifier = self._get_identifier()
 
         self._image_obj = nib.load(self.image_path)
         self._label_obj = None

@@ -1,11 +1,11 @@
 import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
 import elasticdeform.torch as etorch
 
 from thesisproject.data.image_queue import ImageQueue
 
-class SliceLoader(Dataset):
+class SliceLoader(DataLoader):
     def __init__(
         self,
         dataset_queue: ImageQueue,
@@ -42,12 +42,14 @@ class SliceLoader(Dataset):
         Image batch must have shape: B x C x H x W
         Label batch must have shape: B x H x W
         """
+        print(batch)
         image_slices = []
         label_slices = []
         while len(image_slices) < self.slices_per_batch:
             idx = min(len(batch) - 1, np.random.randint(self.volumes_per_batch))
             imagepair = batch[idx]
-            image, label = imagepair[0], imagepair[1]
+            print(imagepair)
+            image, label = imagepair.image, imagepair.label
             weight = 1.
 
             permute_idx = np.random.choice(3)
