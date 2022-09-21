@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.utils.data import IterableDataset
+from torch.utils.data import IterableDataset, get_worker_info
 import elasticdeform.torch as etorch
 
 from thesisproject.data.image_queue import ImageQueue
@@ -22,11 +22,10 @@ class SliceLoader(IterableDataset):
         return self.slices_per_epoch
 
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        imagepair = next(self.dataset_queue)
-        return self._get_slice(imagepair)
+        worker_info = get_worker_info()
+        print(worker_info)
+        with self.dataset_queue.get_random_image() as imagepair:
+            yield self._get_slice(imagepair)
 
     def _get_slice(self, imagepair):
         """
@@ -46,7 +45,7 @@ class SliceLoader(IterableDataset):
             label_transpose = label_volume.permute(axis_to_permute)
 
             slice_depth = np.random.randint(image_transpose.shape[0])
-            
+
             image_slice = image_transpose[slice_depth, :, :]
             label_slice = label_transpose[slice_depth, :, :]
 
@@ -62,7 +61,7 @@ class SliceLoader(IterableDataset):
 
             image_slice -= image_slice.min()
             image_slice /= image_slice.max()
-            
+
         image_slice = image_slice.unsqueeze(0)
 
         return image_slice, label_slice

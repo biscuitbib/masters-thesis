@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import nibabel as nib
 import torch
 from pathlib import Path
@@ -44,6 +45,10 @@ class ImagePair:
         return img_id
 
     @property
+    def is_loaded(self):
+        return self._image is not None
+
+    @property
     def image(self):
         if self._image is None:
             self._image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
@@ -66,7 +71,7 @@ class ImagePair:
 
             except AttributeError:
                 return None
-            
+
         return self._label
 
     def load(self):
@@ -77,6 +82,13 @@ class ImagePair:
         self._image = None
         self._label = None
 
-    @property
-    def is_loaded(self):
-        return self._image is not None
+    @contextmanager
+    def loaded_in_context(self):
+        """
+        Context manager which keeps this ImagePair loaded in the context
+        and unloads it at exit.
+        """
+        try:
+            yield self.load()
+        finally:
+            self.unload()

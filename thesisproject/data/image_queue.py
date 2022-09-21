@@ -1,16 +1,15 @@
+from contextlib import contextmanager
 import numpy as np
-from torch.utils.data import IterableDataset
 from queue import Empty, Queue
 
 from thesisproject.data.image_pair import ImagePair
 
-class ImageQueue(IterableDataset):
-    def __init__(self, dataset, queue_length=16, max_access=10, max_iterations=10000):
+class ImageQueue():
+    def __init__(self, dataset, queue_length=16, max_access=10):
         self.dataset = dataset
 
         self.queue_length = min(queue_length, len(self.dataset))
         self.max_access = max_access
-        self._len = len(dataset)
 
         self.non_loaded = Queue(maxsize=len(dataset))
         self.loaded = Queue(maxsize=queue_length)
@@ -33,19 +32,17 @@ class ImageQueue(IterableDataset):
             self._add_to_loaded()
 
     def __len__(self):
-        return self._len
+        return len(self.dataset)
 
-    def __iter__(self):
-        return self
-
-    def __next__(self):
+    @contextmanager
+    def get_random_image(self):
         try:
             image_pair, n_access = self.loaded.get()
         except Empty:
             raise StopIteration
 
         try:
-            return image_pair
+            yield image_pair
         finally:
             self._release_image(image_pair, n_access)
 
@@ -59,6 +56,3 @@ class ImageQueue(IterableDataset):
             self._add_to_loaded()
         else:
             self.loaded.put((image_pair, n_access + 1))
-
-    def set_len(self, new_len):
-        self._len = new_len

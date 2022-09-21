@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from .image_pair import ImagePair
 
-class ImagePairDataset(Dataset):
+class ImagePairDataset():
     def __init__(self, dir, predict_mode=False, image_transform=None, label_transform=None):
         self.dir = Path(dir)
         self.predict_mode = predict_mode
@@ -30,6 +30,18 @@ class ImagePairDataset(Dataset):
     def __getitem__(self, index):
         return self.images[index]
 
+    def __iter__(self):
+        for image in self.images:
+            yield image
+
+    def load(self):
+        for image in self.images:
+            image.load()
+
+    def unload(self):
+        for image in self.images:
+            image.unload()
+
     def _get_paths(self, dir):
         filenames = sorted(os.listdir(dir))
         paths = [Path(p) for p in filenames]
@@ -48,18 +60,18 @@ class ImagePairDataset(Dataset):
         if self.predict_mode:
             for img_path in self.image_paths:
                 image = ImagePair(
-                    self.image_dir / img_path, 
-                    sample_weight=1.0, 
+                    self.image_dir / img_path,
+                    sample_weight=1.0,
                     image_transform=self.image_transform
                 )
                 image_objects.append(image)
         else:
             for img_path, label_path in zip(self.image_paths, self.label_paths):
                 image = ImagePair(
-                    self.image_dir / img_path, 
-                    label_path=self.label_dir / label_path, 
-                    sample_weight=1.0, 
-                    image_transform=self.image_transform, 
+                    self.image_dir / img_path,
+                    label_path=self.label_dir / label_path,
+                    sample_weight=1.0,
+                    image_transform=self.image_transform,
                     label_transform=self.label_transform
                 )
                 image_objects.append(image)
