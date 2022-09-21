@@ -45,7 +45,7 @@ class ImageQueue(IterableDataset):
             raise StopIteration
 
         try:
-            yield image_pair
+            return image_pair
         finally:
             self._release_image(image_pair, n_access)
 

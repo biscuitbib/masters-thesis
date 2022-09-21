@@ -47,11 +47,21 @@ class ImagePairDataset(Dataset):
         image_objects = []
         if self.predict_mode:
             for img_path in self.image_paths:
-                image = ImagePair(self.image_dir / img_path, sample_weight=1.0)
+                image = ImagePair(
+                    self.image_dir / img_path, 
+                    sample_weight=1.0, 
+                    image_transform=self.image_transform
+                )
                 image_objects.append(image)
         else:
             for img_path, label_path in zip(self.image_paths, self.label_paths):
-                image = ImagePair(self.image_dir / img_path, self.label_dir / label_path, sample_weight=1.0)
+                image = ImagePair(
+                    self.image_dir / img_path, 
+                    label_path=self.label_dir / label_path, 
+                    sample_weight=1.0, 
+                    image_transform=self.image_transform, 
+                    label_transform=self.label_transform
+                )
                 image_objects.append(image)
 
         return image_objects

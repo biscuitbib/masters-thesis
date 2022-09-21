@@ -30,8 +30,8 @@ if __name__ == "__main__":
 
     train_data, val_data = get_slice_loaders(path, volume_transform=volume_transform)
 
-    train_loader = DataLoader(train_data, batch_size=8, num_workers=4)
-    val_loader = DataLoader(val_data, batch_size=8, num_workers=4)
+    train_loader = DataLoader(train_data, batch_size=8, num_workers=1, pin_memory=True)
+    val_loader = DataLoader(val_data, batch_size=8, num_workers=1, pin_memory=True)
 
     ## Train
     net = UNet(1, 9)

@@ -13,7 +13,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     net.to(device)
 
-    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=10)
+    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=2)
 
     # Load checkpoint if continuing
     checkpoint_path = os.path.join("model_saves", "model_checkpoint.pt")

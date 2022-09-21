@@ -46,7 +46,7 @@ class ImagePair:
     @property
     def image(self):
         if self._image is None:
-            self._image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged', dtype=self.im_dtype))
+            self._image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
 
             if self.image_transform:
                 self._image = self.image_transform(self._image)
@@ -54,22 +54,19 @@ class ImagePair:
         if self._image.ndim == 3:
             self._image.unsqueeze(0)
 
-
-
         return self._image
 
     @property
-    def labels(self):
-        """ Like self.image """
+    def label(self):
         if self._label is None:
             try:
-                self._label = torch.from_numpy(self.label_obj.get_fdata(caching="unchanged", dtype=self.lab_dtype))
-
+                self._label = torch.from_numpy(self._label_obj.get_fdata(caching="unchanged")).type(self.lab_dtype)
                 if self.label_transform:
                     self._label = self.label_transform(self._label)
 
             except AttributeError:
                 return None
+            
         return self._label
 
     def load(self):
