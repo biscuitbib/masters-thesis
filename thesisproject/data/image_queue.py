@@ -2,7 +2,8 @@ import numpy as np
 from queue import Empty, Queue
 from contextlib import contextmanager
 
-from thesisproject.data import ImagePair, LoadingPool
+from thesisproject.data.image_pair import ImagePair
+from thesisproject.data.loading_pool import LoadingPool
 
 class ImageQueue():
     def __init__(self, dataset, queue_length=16, max_access=10):
