@@ -2,7 +2,7 @@ import numpy as np
 from queue import Empty, Queue
 from contextlib import contextmanager
 
-from thesisproject.data.image_pair import ImagePair
+from thesisproject.data import ImagePair, LoadingPool
 
 class ImageQueue():
     def __init__(self, dataset, queue_length=16, max_access=10):
@@ -20,24 +20,27 @@ class ImageQueue():
         for i in inds:
             self.non_loaded.put(self.dataset.images[i])
 
+        self.loading_pool = LoadingPool()
+        self.loading_pool.register_put_function(self._add_to_loaded)
+
         self._load_queue_full()
 
-
-    def _add_to_loaded(self):
+    def _add_to_load_queue(self):
         image = self.non_loaded.get_nowait()
-        self.loaded.put((image, 0))
+        self.loading_pool.add_image_to_load_queue(image)
 
     def _load_queue_full(self):
         for _ in range(self.queue_length):
-            self._add_to_loaded()
+            self._add_to_load_queue()
 
     def __len__(self):
         return len(self.dataset)
 
     @contextmanager
     def get_random_image(self):
+        timeout_s = 5
         try:
-            image_pair, n_access = self.loaded.get()
+            image_pair, n_access = self.loaded.get(timeout=timeout_s)
         except Empty:
             raise StopIteration
 
