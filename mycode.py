@@ -5,6 +5,7 @@ import torchvision.transforms as T
 from torchvision.transforms.functional import pad
 from torch.utils.data import DataLoader, random_split
 from skimage.io import imread, imsave
+from multiprocessing import cpu_count
 
 from thesisproject.data.utils import get_slice_loaders
 from thesisproject.models import UNet
@@ -30,8 +31,10 @@ if __name__ == "__main__":
 
     train_data, val_data = get_slice_loaders(path, volume_transform=volume_transform)
 
-    train_loader = DataLoader(train_data, batch_size=8, num_workers=1, pin_memory=True)
-    val_loader = DataLoader(val_data, batch_size=8, num_workers=1, pin_memory=True)
+    num_cpus = cpu_count()
+    print(num_cpus)
+    train_loader = DataLoader(train_data, batch_size=8, num_workers=4)
+    val_loader = DataLoader(val_data, batch_size=8, num_workers=4)
 
     ## Train
     net = UNet(1, 9)

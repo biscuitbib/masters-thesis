@@ -2,9 +2,11 @@ import os
 import numpy as np
 from torch.utils.data import Dataset
 from pathlib import Path
+from contextlib import contextmanager
+
 from .image_pair import ImagePair
 
-class ImagePairDataset():
+class ImagePairDataset(Dataset):
     def __init__(self, dir, predict_mode=False, image_transform=None, label_transform=None):
         self.dir = Path(dir)
         self.predict_mode = predict_mode
@@ -77,31 +79,11 @@ class ImagePairDataset():
                 image_objects.append(image)
 
         return image_objects
-
-    def get_random(self, N=1, unique=False):
-        """
-        Return N random images, with or without re-sampling
-
-        Args:
-            N:      Int, number of randomly sampled images to return
-            unique: Bool, whether the sampled images should be all unique
-
-        Returns:
-            A list of ImagePair objects
-        """
-        returned = []
-        while len(returned) < N:
-            if self.queue:
-                with self.queue.get() as image:
-                    if unique and image in returned:
-                        continue
-                    else:
-                        returned.append(image)
-                        yield image
-            else:
-                image = self.images[np.random.randint(len(self))]
-                if unique and image in returned:
-                    continue
-                else:
-                    returned.append(image)
-                    yield image
+    
+    @contextmanager
+    def get_random_image(self):
+        idx = np.random.randint(len(self))
+        try:
+            yield self.images[idx]
+        finally:
+            self.images[idx].unload()

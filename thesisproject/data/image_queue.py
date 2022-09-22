@@ -1,6 +1,6 @@
-from contextlib import contextmanager
 import numpy as np
 from queue import Empty, Queue
+from contextlib import contextmanager
 
 from thesisproject.data.image_pair import ImagePair
 
