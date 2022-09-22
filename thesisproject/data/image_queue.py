@@ -60,6 +60,6 @@ class ImageQueue():
         if n_access >= self.max_access:
             image_pair.unload()
             self.non_loaded.put(image_pair)
-            self._add_to_loaded()
+            self._add_image_to_loading_pool()
         else:
             self.loaded.put((image_pair, n_access + 1))
