@@ -22,17 +22,20 @@ class ImageQueue():
             self.non_loaded.put(self.dataset.images[i])
 
         self.loading_pool = LoadingPool()
-        self.loading_pool.register_put_function(self._add_to_loaded)
+        self.loading_pool.register_put_function(self._add_image_to_load_queue)
 
         self._load_queue_full()
 
-    def _add_to_load_queue(self):
+    def _add_image_to_loading_pool(self):
         image = self.non_loaded.get_nowait()
         self.loading_pool.add_image_to_load_queue(image)
 
+    def _add_image_to_load_queue(self, image):
+        self.loaded.put(image)
+
     def _load_queue_full(self):
         for _ in range(self.queue_length):
-            self._add_to_load_queue()
+            self._add_image_to_loading_pool()
 
     def __len__(self):
         return len(self.dataset)
