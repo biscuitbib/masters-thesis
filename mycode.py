@@ -32,9 +32,9 @@ if __name__ == "__main__":
     train_data, val_data = get_slice_loaders(path, volume_transform=volume_transform)
 
     num_cpus = cpu_count()
-    print(num_cpus)
-    train_loader = DataLoader(train_data, batch_size=8, num_workers=4)
-    val_loader = DataLoader(val_data, batch_size=8, num_workers=4)
+    print("num cpus: ", num_cpus)
+    train_loader = DataLoader(train_data, batch_size=8, num_workers=1)
+    val_loader = DataLoader(val_data, batch_size=8, num_workers=1)
 
     ## Train
     net = UNet(1, 9)

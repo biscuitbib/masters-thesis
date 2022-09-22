@@ -22,11 +22,9 @@ class SliceLoader(IterableDataset):
         return self.slices_per_epoch
 
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        with self.dataset_queue.get_random_image() as imagepair:
-            return self._get_random_slice(imagepair)
+        for i in range(self.slices_per_epoch):
+            with self.dataset_queue.get_random_image() as imagepair:
+                yield self._get_random_slice(imagepair)
 
     def _get_random_slice(self, imagepair):
         """

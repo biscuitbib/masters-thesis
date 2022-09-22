@@ -4,6 +4,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from skimage.io import imread, imsave
 from tqdm import tqdm
+import threading
 
 from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb, grayscale_to_rgb
 
@@ -33,6 +34,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
     net.train()
 
     for epoch in range(start_epoch, num_epochs):
+        for thread in threading.enumerate(): 
+            print(thread.name)
         pbar = tqdm(total=len(train_loader), position=0, leave=True)
         train_loss = 0.0
         num_batches = 0
