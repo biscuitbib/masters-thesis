@@ -50,7 +50,7 @@ if __name__ == "__main__":
         train_loader,
         val_loader,
         num_epochs=1000,
-        cont=True
+        cont=False
     )
 
     """

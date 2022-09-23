@@ -35,7 +35,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
     for epoch in range(start_epoch, num_epochs):
         pbar = tqdm(total=len(train_loader) + len(val_loader), position=0, leave=True)
-        pbar.set_description("training")
+        pbar.set_description(f"Epoch {epoch} training")
         train_loss = 0.0
         num_batches = 0
         for i, data in enumerate(train_loader, 0):
@@ -60,7 +60,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             #pbar.update(inputs.shape[0])
             pbar.update(1)
         
-        pbar.set_description("validation")
+        pbar.set_description(f"Epoch {epoch} validation")
         # Validation
         with torch.no_grad():
             val_loss = 0.0
@@ -100,8 +100,11 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             input_imgs /= torch.max(input_imgs)
             input_imgs = grayscale_to_rgb(input_imgs)
             pred_imgs = segmentation_to_rgb(outputs.cpu())
+            pred_overlay = (input_imgs / 2) + (pred_imgs / 2)
+            
             target_imgs = mask_to_rgb(labels.cpu())
-            imgs = torch.cat((input_imgs, target_imgs, pred_imgs), dim=2)
+            target_overlay = (input_imgs / 2) + (target_imgs / 2)
+            imgs = torch.cat((target_overlay, pred_overlay), dim=2)
 
             writer.add_images("images/val", imgs[:4, ...], epoch)
             #writer.add_images("images/val_inputs", input_imgs[:4, ...], epoch)

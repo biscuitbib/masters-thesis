@@ -55,9 +55,13 @@ class SliceLoader(IterableDataset):
 
             image_slice = image_transpose[slice_depth, :, :]
             label_slice = label_transpose[slice_depth, :, :]
-
-            if torch.sum(label_slice) != 0:
+            
+            valid_labels = (label_slice != 0) * (label_slice < 8)
+            if torch.sum(valid_labels > 0):
                 has_fg = True
+            #fg_ratio = torch.sum(label_slice != 0) / label_slice.numel()
+            #if fg_ratio > 0.01:
+                #has_fg = True
 
         if True:
             if np.random.random() <= 1/3:
