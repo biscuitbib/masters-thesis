@@ -3,7 +3,6 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-
 colors = np.array([
     [0, 0, 0],
     [228, 146, 244],
@@ -30,6 +29,19 @@ def mask_to_rgb(image):
 def grayscale_to_rgb(image):
     image = image.repeat(1, 3, 1, 1)
     return image
+
+def create_overlay_image(inputs, labels, outputs):
+    input_imgs = inputs.detach.cpu() * 255
+    input_imgs /= torch.max(input_imgs)
+    input_imgs = grayscale_to_rgb(input_imgs)
+    
+    pred_imgs = segmentation_to_rgb(outputs.detach().cpu())
+    pred_overlay = (input_imgs / 2) + (pred_imgs / 2)
+
+    target_imgs = mask_to_rgb(labels.detach().cpu())
+    target_overlay = (input_imgs / 2) + (target_imgs / 2)
+    imgs = torch.cat((target_overlay, pred_overlay), dim=2)
+    return imgs
 
 def create_animation(image, dim=0):
     h, w, d = image.shape

@@ -6,7 +6,7 @@ from skimage.io import imread, imsave
 from tqdm import tqdm
 import threading
 
-from thesisproject.utils import get_metrics, mask_to_rgb, segmentation_to_rgb, grayscale_to_rgb
+from thesisproject.utils import get_metrics, create_overlay_image
 
 def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False):
     writer = SummaryWriter()
@@ -96,20 +96,9 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
                 pbar.update(1)
 
             # Write to tensorboard
-            input_imgs = inputs.cpu() * 255
-            input_imgs /= torch.max(input_imgs)
-            input_imgs = grayscale_to_rgb(input_imgs)
-            pred_imgs = segmentation_to_rgb(outputs.cpu())
-            pred_overlay = (input_imgs / 2) + (pred_imgs / 2)
-            
-            target_imgs = mask_to_rgb(labels.cpu())
-            target_overlay = (input_imgs / 2) + (target_imgs / 2)
-            imgs = torch.cat((target_overlay, pred_overlay), dim=2)
+            imgs = create_overlay_image(inputs, labels, outputs)
 
             writer.add_images("images/val", imgs[:4, ...], epoch)
-            #writer.add_images("images/val_inputs", input_imgs[:4, ...], epoch)
-            #writer.add_images("images/val_targets", target_imgs[:4, ...], epoch)
-            #writer.add_images("images/val_predictions", pred_imgs[:4, ...], epoch)
 
             writer.add_scalar("validation_metrics/accuracy", val_accuracy/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/precision", val_precision/num_val_batches, epoch)
