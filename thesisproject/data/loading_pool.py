@@ -8,7 +8,6 @@ def _load_func(load_queue, results_queue):
         try:
             to_load.load()
         finally:
-            print("added to loading pool")
             results_queue.put(to_load)
             load_queue.task_done()
 
@@ -18,7 +17,6 @@ def _gather_loaded(output_queue, put_function):
         image_pair = output_queue.get(block=True)
         put_function(image_pair)
         output_queue.task_done()
-        print("thread putting into loaded queue")
 
 class LoadingPool:
     """
@@ -26,12 +24,11 @@ class LoadingPool:
     """
     def __init__(self,
                  put_function=lambda _elem: None,
-                 n_threads=16,
+                 n_threads=5,
                  max_queue_size=50):
         # Setup load thread pool
         self._load_queue = Queue(maxsize=max_queue_size)
         self._output_queue = Queue(maxsize=max_queue_size)
-        self.thread_lock = Lock()
 
         args = (self._load_queue, self._output_queue)
         self.pool = []
@@ -68,7 +65,6 @@ class LoadingPool:
     def add_image_to_load_queue(self, image_pair):
         if self.qsize() == self.maxsize:
             "Sleep until empty"
-            print("loading pool queue full")
             while self.qsize() > 1:
                 sleep(1)
         self._load_queue.put(image_pair)

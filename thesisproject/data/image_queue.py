@@ -3,8 +3,6 @@ from queue import Empty, Queue
 from contextlib import contextmanager
 from time import sleep
 
-
-from thesisproject.data.image_pair import ImagePair
 from thesisproject.data.loading_pool import LoadingPool
 
 class ImageQueue():
@@ -24,13 +22,12 @@ class ImageQueue():
             self.non_loaded.put(self.dataset.images[i])
 
         self.loading_pool = LoadingPool(put_function=self._add_image_to_load_queue)
-        #self.loading_pool.register_put_function(self._add_image_to_load_queue)
-        
+
         # Increment counters to random off-set points for the first images
         self.max_offset = int(self.max_access * 0.75)
         self.n_offset = self.queue_length
 
-        self._load_queue_full()
+        self.preload()
 
     def _add_image_to_loading_pool(self):
         image = self.non_loaded.get_nowait()
@@ -42,10 +39,10 @@ class ImageQueue():
             self.n_offset -= 1
         else:
             offset = 0
-            
+
         self.loaded.put((image, offset))
 
-    def _load_queue_full(self):
+    def preload(self):
         for _ in range(self.queue_length):
             self._add_image_to_loading_pool()
         self.loading_pool.join()
@@ -55,7 +52,6 @@ class ImageQueue():
 
     @contextmanager
     def get_random_image(self):
-        print("loaded size: ", self.loaded.qsize())
         if self.loaded.qsize() < self.queue_length // 2:
             sleep(2)
         timeout_s = 5
