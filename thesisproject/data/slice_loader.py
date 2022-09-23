@@ -13,6 +13,7 @@ class SliceLoader(IterableDataset):
         image_transform=None,
         label_transform=None,
         ):
+        
         self.dataset_queue = dataset_queue
         self.slices_per_epoch = slices_per_epoch
         self.image_transform = image_transform
@@ -22,7 +23,14 @@ class SliceLoader(IterableDataset):
         return self.slices_per_epoch
 
     def __iter__(self):
-        for i in range(self.slices_per_epoch):
+        worker_info = torch.utils.data.get_worker_info()
+        if worker_info is None:
+            len = self.slices_per_epoch
+        else:
+            num_workers = worker_info.num_workers
+            len = self.slices_per_epoch // num_workers
+        
+        for i in range(len):
             with self.dataset_queue.get_random_image() as imagepair:
                 yield self._get_random_slice(imagepair)
 

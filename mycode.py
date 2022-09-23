@@ -33,8 +33,8 @@ if __name__ == "__main__":
 
     num_cpus = cpu_count()
     print("num cpus: ", num_cpus)
-    train_loader = DataLoader(train_data, batch_size=8, num_workers=1)
-    val_loader = DataLoader(val_data, batch_size=8, num_workers=1)
+    train_loader = DataLoader(train_data, batch_size=8, num_workers=num_cpus)
+    val_loader = DataLoader(val_data, batch_size=8, num_workers=num_cpus)
 
     ## Train
     net = UNet(1, 9)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         train_loader,
         val_loader,
         num_epochs=1000,
-        cont=False
+        cont=True
     )
 
     """

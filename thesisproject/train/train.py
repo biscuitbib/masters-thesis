@@ -34,9 +34,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
     net.train()
 
     for epoch in range(start_epoch, num_epochs):
-        for thread in threading.enumerate(): 
-            print(thread.name)
-        pbar = tqdm(total=len(train_loader), position=0, leave=True)
+        pbar = tqdm(total=len(train_loader) + len(val_loader), position=0, leave=True)
+        pbar.set_description("training")
         train_loss = 0.0
         num_batches = 0
         for i, data in enumerate(train_loader, 0):
@@ -60,9 +59,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
             #pbar.update(inputs.shape[0])
             pbar.update(1)
-
-        pbar.set_description(f"training loss epoch {epoch}: {round(train_loss/num_batches, 3)}")
-
+        
+        pbar.set_description("validation")
         # Validation
         with torch.no_grad():
             val_loss = 0.0
@@ -94,6 +92,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
                 val_dice += metrics["dice"]
 
                 num_val_batches += 1
+                
+                pbar.update(1)
 
             # Write to tensorboard
             input_imgs = inputs.cpu() * 255
@@ -117,6 +117,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             writer.add_scalar("loss/validation", val_loss/num_val_batches, epoch)
 
             writer.add_scalar("loss/train", train_loss/num_batches, epoch)
+            
+            writer.add_scalar("learning_rate", optimizer.param_groups[0]['lr'], epoch)
 
         # Save model checkpoints
         torch.save({
@@ -128,6 +130,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
         # Step learning rate scheduler
         scheduler.step(val_dice/num_val_batches)
+        
+        print(f"training loss epoch {epoch}: {round(train_loss/num_batches, 3)}")
 
     # Save final model
     torch.save(net.state_dict(), model_path)
