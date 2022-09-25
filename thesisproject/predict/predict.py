@@ -8,6 +8,7 @@ def predict_volume(net, image):
     net.eval()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
+    print(image.shape)
     h, w, d = image.shape
     
     with torch.no_grad():

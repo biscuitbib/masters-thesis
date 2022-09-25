@@ -25,7 +25,7 @@ class Square_pad:
         return padded_im
 
 if __name__ == "__main__":
-    path = "../knee_data/"
+    path = "../../knee_data/"
 
     volume_transform = Square_pad()
 

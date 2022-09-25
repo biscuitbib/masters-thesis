@@ -36,18 +36,23 @@ if __name__ == "__main__":
 
     for filename in files:
         nii_file = nib.load(path + filename)
+        
+        isright = filename[8] == 'R'
+        scan = nib.load(path + filename).get_fdata()
+        
+        # Flip coronal plane
+        scan = np.flip(scan, axis=1).copy()
+        
+        if isright:
+            scan = np.flip(scan, axis=2).copy()
 
-        scan = nii_file.get_fdata()
-
-        scan_flip = np.flip(scan, axis=0)
-
-        scan_tensor = torch.from_numpy(scan_flip.copy()).float().to(device)
+        scan_tensor = torch.from_numpy(scan).float().to(device)
 
         scan_tensor -= scan_tensor.min()
         scan_tensor /= scan_tensor.max()
 
         prediction = predict_volume(net, scan_tensor)
 
-        extracted_features = extract_features(scan_tensor, prediction)
+        extracted_features = extract_features(scan_tensor.detach().cpu().numpy(), prediction.detach().cpu().numpy())
 
         print({"filename": filename, **extracted_features})

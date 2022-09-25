@@ -73,10 +73,6 @@ def get_multiclass_metrics(pred, target, num_classes, remove_bg=False):
     offset = 1 if remove_bg else 0
     for c in range(pred.shape[1]):
         metrics = calculate_metrics(pred[:, c, ...], target[:, c, ...])
-        metrics = {
-            "class": c + offset,
-            **metrics
-        }
         class_metrics.append(metrics)
         
     return class_metrics

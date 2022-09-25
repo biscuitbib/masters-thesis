@@ -87,3 +87,10 @@ class ImagePairDataset(Dataset):
             yield self.images[idx]
         finally:
             self.images[idx].unload()
+            
+    @contextmanager
+    def get_image_at_index(self, idx):
+        try:
+            yield self.images[idx]
+        finally:
+            self.images[idx].unload()
