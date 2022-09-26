@@ -19,14 +19,14 @@ def one_hot_pred_and_target(pred, target, num_classes):
 
 def one_hot_volumes(pred, target, num_classes):
     """
-    Takes pred = (batch X num classes X height X width X depth) prediction, 
-    and target = (batch X height X width X depth target), and makes them same size
+    Takes pred = (batch X 1 X height X width X depth) prediction, 
+    and target = (batch X 1 X height X width X depth target), and makes them same size
     """
     #max_idx = torch.argmax(pred, 1, keepdim=True).squeeze(1)
     #print(np.max(max_idx))
     pred_onehot = F.one_hot(pred, num_classes=num_classes).permute(0, 4, 1, 2, 3)
 
-    labels_onehot = F.one_hot(target, num_classes=num_classes).permute(0, 4, 1, 2,3)
+    labels_onehot = F.one_hot(target, num_classes=num_classes).permute(0, 4, 1, 2, 3)
     
     return pred_onehot, labels_onehot
     

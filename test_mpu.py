@@ -23,13 +23,9 @@ class Square_pad:
 
         padded_im = F.pad(image, padding, "constant", 0)
         return padded_im
-
-def test_collate(data):
-    image = data[0].image.clone()
-    label = data[0].label.clone()
-    data[0].unload()
-    return image, label
     
+def test_collate(image):
+    return image
 
 if __name__ == "__main__":
     path = "../knee_data/"
@@ -52,4 +48,4 @@ if __name__ == "__main__":
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint['model_state_dict'])
 
-        test_loop(net, test_loader, 9)
+        test_loop(net, test_loader, 9, save_preds=True)
