@@ -1,1 +1,1 @@
-from .test import test_loop
+from .test import Test

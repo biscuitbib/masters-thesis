@@ -59,8 +59,8 @@ class Up(nn.Module):
             nn.Conv2d(
                 in_channels,
                 out_channels,
-                kernel_size=2,
-                padding="same"),
+                kernel_size=2
+            ),
             nn.ReLU(),
             nn.BatchNorm2d(out_channels)
         )

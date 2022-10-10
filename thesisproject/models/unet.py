@@ -7,10 +7,11 @@ https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
 from .unet_blocks import *
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes):
+    def __init__(self, n_channels, n_classes, class_names=None):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
+        self.class_names = class_names
 
         # Hard coded increase of filters by a factor of sqrt(2) for each layer
         self.inc = Double_Conv(n_channels, 90)
@@ -25,12 +26,15 @@ class UNet(nn.Module):
         self.up4 = Up(181, 90)
         self.outc = Out_Conv(90, n_classes)
 
-    def forward(self, x):
+    def forward(self, x, encode=False):
         x1 = self.inc(x)     
         x2 = self.down1(x1)  
         x3 = self.down2(x2)  
         x4 = self.down3(x3)  
-        x5 = self.down4(x4) 
+        x5 = self.down4(x4)
+        if encode:
+            return torch.flatten(x5)
+        
         x = self.up1(x5, x4) 
         x = self.up2(x, x3)  
         x = self.up3(x, x2)

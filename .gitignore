@@ -136,3 +136,4 @@ pet_data/
 *.mp4
 *.mat
 predictions/
+*.nii.gz

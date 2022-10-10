@@ -1,15 +1,20 @@
 import os
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from skimage.io import imread, imsave
 from tqdm import tqdm
-import threading
 
-from thesisproject.utils import get_metrics, create_overlay_image
+from thesisproject.utils import get_multiclass_metrics, create_overlay_figure, create_confusion_matrix_figure
 
 def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False):
+    layout = {
+        "Loss": {"loss": ["Multiline", ["loss/train", "loss/validation"]]},
+        "Per class dice": {"dice": ["Multiline", [f"dice/{name}" for name in net.class_names]]}
+    }
+
     writer = SummaryWriter()
+    writer.add_custom_scalars(layout)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     net.to(device)
@@ -25,15 +30,14 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        start_epoch = checkpoint["epoch"]
+        start_epoch = checkpoint["epoch"] + 1
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         print(f"Continuing training from epoch {start_epoch}")
 
 
     # Training
-    net.train()
-
     for epoch in range(start_epoch, num_epochs):
+        net.train()
         pbar = tqdm(total=len(train_loader) + len(val_loader), position=0, leave=True)
         pbar.set_description(f"Epoch {epoch} training")
         train_loss = 0.0
@@ -45,7 +49,6 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
             # forward + backward + optimize
             outputs = net(inputs)
-            #print(outputs.shape, outputs.dtype)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -61,6 +64,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             pbar.update(1)
         
         pbar.set_description(f"Epoch {epoch} validation")
+        net.eval()
         # Validation
         with torch.no_grad():
             val_loss = 0.0
@@ -69,6 +73,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             val_recall = 0.0
             val_specificity = 0.0
             val_dice = 0.0
+            val_per_class_dice = np.zeros(net.n_classes - 1)
 
             num_val_batches = 0
 
@@ -82,35 +87,39 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
                 # save statistics
                 batch_samples = inputs.shape[0]
                 current_loss = loss.item() / batch_samples
-                metrics = get_metrics(outputs.detach().cpu(), labels.detach().cpu(), net.n_classes, remove_bg=True)
+                metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=True)
 
                 val_loss += current_loss
-                val_accuracy += metrics["accuracy"]
-                val_precision += metrics["precision"]
-                val_recall += metrics["recall"]
-                val_specificity += metrics["specificity"]
-                val_dice += metrics["dice"]
+                val_accuracy += np.mean(metrics["accuracy"])
+                val_precision += np.mean(metrics["precision"])
+                val_recall += np.mean(metrics["recall"])
+                val_specificity += np.mean(metrics["specificity"])
+                val_dice += np.mean(metrics["dice"])
+                val_per_class_dice += metrics["dice"]
 
                 num_val_batches += 1
                 
                 pbar.update(1)
 
             # Write to tensorboard
-            imgs = create_overlay_image(inputs, labels, outputs)
+            overlay_fig, _ = create_overlay_figure(inputs, labels, outputs, images_per_batch=4)
 
-            writer.add_images("images/val", imgs[:4, ...], epoch)
+            writer.add_figure("images/val", overlay_fig, epoch)
 
             writer.add_scalar("validation_metrics/accuracy", val_accuracy/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/precision", val_precision/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/recall", val_recall/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/specificity", val_specificity/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/dice", val_dice/num_val_batches, epoch)
+            
+            for i, name in enumerate(net.class_names):
+                writer.add_scalar(f"dice/{name}", val_per_class_dice[i]/num_val_batches, epoch)
 
             writer.add_scalar("loss/validation", val_loss/num_val_batches, epoch)
 
             writer.add_scalar("loss/train", train_loss/num_batches, epoch)
             
-            writer.add_scalar("learning_rate", optimizer.param_groups[0]['lr'], epoch)
+            writer.add_scalar("learning rate", optimizer.param_groups[0]['lr'], epoch)
 
         # Save model checkpoints
         torch.save({
@@ -122,8 +131,6 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
         # Step learning rate scheduler
         scheduler.step(val_dice/num_val_batches)
-        
-        print(f"training loss epoch {epoch}: {round(train_loss/num_batches, 3)}")
 
     # Save final model
     torch.save(net.state_dict(), model_path)
