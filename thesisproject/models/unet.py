@@ -23,9 +23,9 @@ class UNet(nn.Module):
         self.down4 = Down(724, 1448)
 
         self.encoder = Encoder(
-            in_channels=1448,
-            fc_in=self._calculate_fc_in(),
-            vector_size=encoding_size
+            1448,
+            self._calculate_fc_in(),
+            encoding_size
         )
 
         self.up1 = Up(1448, 724)
