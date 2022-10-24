@@ -96,25 +96,25 @@ class Encoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(
-                in_channels=in_channels,
-                out_channels=in_channels//2,
+                in_channels,
+                in_channels//2,
                 kernel_size=3,
                 padding="same"
             ),
             nn.ReLU(),
-            nn.BatchNorm2d(in_channels=in_channels//2),
+            nn.BatchNorm2d(in_channels//2),
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(
-                in_channels=in_channels//2,
-                out_channels=in_channels//4,
+                in_channels//2,
+                in_channels//4,
                 kernel_size=3,
                 padding="same"
             ),
             nn.ReLU(),
-            nn.BatchNorm2d(in_channels=in_channels//4),
+            nn.BatchNorm2d(in_channels//4),
             nn.Linear(
-                in_features=fc_in,
-                out_features=vector_size
+                fc_in,
+                vector_size
             )
         )
 
