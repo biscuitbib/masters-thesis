@@ -13,7 +13,7 @@ class SliceLoader(IterableDataset):
         image_transform=None,
         label_transform=None,
         ):
-        
+
         self.dataset_queue = dataset_queue
         self.slices_per_epoch = slices_per_epoch
         self.image_transform = image_transform
@@ -29,7 +29,7 @@ class SliceLoader(IterableDataset):
         else:
             num_workers = worker_info.num_workers
             len = self.slices_per_epoch // num_workers
-        
+
         for i in range(len):
             with self.dataset_queue.get_random_image() as imagepair:
                 yield self._get_random_slice(imagepair)
@@ -55,23 +55,21 @@ class SliceLoader(IterableDataset):
 
             image_slice = image_transpose[slice_depth, :, :]
             label_slice = label_transpose[slice_depth, :, :]
-            
+
             valid_labels = (label_slice != 0) * (label_slice < 8)
             if torch.sum(valid_labels > 0):
                 has_fg = True
-            #fg_ratio = torch.sum(label_slice != 0) / label_slice.numel()
-            #if fg_ratio > 0.01:
-                #has_fg = True
 
-        if True:
-            if np.random.random() <= 1/3:
-                displacement_val = np.random.randn(2, 5, 5) * 5.
-                displacement = torch.tensor(displacement_val)
-                [image_slice, label_slice] = etorch.deform_grid([image_slice, label_slice], displacement, order=0)
-                weight = 1/3
+        if np.random.random() <= 1/3:
+            displacement_val = np.random.randn(2, 5, 5) * 5.
+            displacement = torch.tensor(displacement_val)
+            [image_slice, label_slice] = etorch.deform_grid([image_slice, label_slice], displacement, order=0)
 
+            """
+            Don't do min-max scaling
             image_slice -= image_slice.min()
             image_slice /= image_slice.max()
+            """
 
         image_slice = image_slice.unsqueeze(0)
 
