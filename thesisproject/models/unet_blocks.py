@@ -117,3 +117,6 @@ class Encoder(nn.Module):
                 out_features=vector_size
             )
         )
+
+    def forward(self, x):
+        return self.encoder(x)
