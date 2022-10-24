@@ -32,6 +32,7 @@ class UNet(nn.Module):
         x3 = self.down2(x2)  
         x4 = self.down3(x3)  
         x5 = self.down4(x4)
+        print(x5.shape)
         if encode:
             return torch.flatten(x5)
         

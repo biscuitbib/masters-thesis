@@ -72,6 +72,7 @@ def class_features(image, mask, name):
     return results
 
 def extract_features(image, mask):
+    h, w, d = image.shape
     # Compartments
     lateral_tibial = get_class_mask(mask, 4)
     medial_tibial = get_class_mask(mask, 7)
@@ -79,9 +80,14 @@ def extract_features(image, mask):
     lateral_meniscus = get_class_mask(mask, 3)
     medial_meniscus = get_class_mask(mask, 6)
 
-    # Crop femoral cartilage to tibial cartilage bounding box
-    lt_wmin, lt_wmax, lt_dmin, lt_dmax = bbox(lateral_tibial)
-    mt_wmin, mt_wmax, mt_dmin, mt_dmax = bbox(medial_tibial)
+    # Crop femoral cartilage to tibial cartilage bounding box, if any tibial cartilage found.
+    lt_wmin, lt_wmax, lt_dmin, lt_dmax = 0, w - 1, 0, d - 1
+    if np.any(lateral_tibial):
+        lt_wmin, lt_wmax, lt_dmin, lt_dmax = bbox(lateral_tibial)
+        
+    mt_wmin, mt_wmax, mt_dmin, mt_dmax = 0, w - 1, 0, d - 1
+    if np.any(medial_tibial):
+        mt_wmin, mt_wmax, mt_dmin, mt_dmax = bbox(medial_tibial)
 
     femoral_crop = np.zeros_like(femoral)
     femoral_lt_bbox = femoral[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1]
@@ -91,7 +97,10 @@ def extract_features(image, mask):
 
     # PCA cut
     # TODO replace with own version of BelowCenter instead of Lærke's
-    BelowCenter(femoral_crop)
+    # Fails if not any femoral classes
+    if np.any(femoral_crop):
+        BelowCenter(femoral_crop)
+        
     lateral_femoral = np.zeros_like(femoral)
     lateral_femoral[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1] = femoral_crop[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1]
 
