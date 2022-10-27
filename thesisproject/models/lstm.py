@@ -1,4 +1,3 @@
-from tkinter import N
 import torch
 from torch import nn
 
@@ -16,8 +15,9 @@ class FixedFeatureLSTM(nn.Module):
         self.fc = nn.Linear(self.hidden_size, self.n_classes)
 
     def forward(self, seq):
-        out, _ = self.lstm(seq)[:, -1, ...] # last output for each sequence in the batch
-        out = self.fc(out)
+        out, _ = self.lstm(seq)
+        last_out = out[:, -1, ...] # last output for each sequence in the batch
+        out = self.fc(last_out)
         return out
 
 
