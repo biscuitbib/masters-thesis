@@ -46,7 +46,7 @@ class Test:
             prediction = self.predict(image, class_index=False)
 
             if self.save_preds:
-                prediction_nii = nib.Nifti1Image(prediction.squeeze().detach().cpu().numpy(), affine=np.eye(4), dtype=np.float32)
+                prediction_nii = nib.Nifti1Image(prediction.squeeze().detach().cpu().numpy(), affine=np.eye(4), dtype=np.uint8)
                 if not os.path.exists("predictions"):
                     os.mkdir("predictions")
 
@@ -60,16 +60,16 @@ class Test:
 
             for metric_key, metric_values in metrics.items():
                 self.per_class_metrics[metric_key] += metric_values
-                    
+
             self.n_samples += 1
             self.pbar.update(1)
-            return 
-        
+            return
+
     def __call__(self):
         with torch.no_grad():
             for i, [imagepair] in enumerate(self.test_loader, 0):
                 self._test_volume(imagepair)
-                    
+
 
             self.pbar.close()
             print("Calculating per class metrics.")
