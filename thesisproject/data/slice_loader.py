@@ -65,11 +65,9 @@ class SliceLoader(IterableDataset):
             displacement = torch.tensor(displacement_val)
             [image_slice, label_slice] = etorch.deform_grid([image_slice, label_slice], displacement, order=0)
 
-            """
-            Don't do min-max scaling
-            image_slice -= image_slice.min()
-            image_slice /= image_slice.max()
-            """
+        
+        image_slice -= image_slice.min()
+        image_slice /= image_slice.max()
 
         image_slice = image_slice.unsqueeze(0)
 
