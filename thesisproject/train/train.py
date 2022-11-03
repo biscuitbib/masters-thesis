@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from thesisproject.utils import get_multiclass_metrics, create_overlay_figure, create_confusion_matrix_figure
 
-def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False):
+def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epochs=10, cont=False, model_name="model"):
     layout = {
         "Loss": {"loss": ["Multiline", ["loss/train", "loss/validation"]]},
         "Per class dice": {"dice": ["Multiline", [f"dice/{name}" for name in net.class_names]]}
@@ -22,8 +22,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
     scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=2)
 
     # Load checkpoint if continuing
-    checkpoint_path = os.path.join("model_saves", "model_checkpoint.pt")
-    model_path = os.path.join("model_saves", "model.pt")
+    checkpoint_path = os.path.join("model_saves", f"{model_name}_checkpoint.pt")
+    model_path = os.path.join("model_saves", f"{model_name}.pt")
     start_epoch = 0
 
     if cont:
@@ -62,7 +62,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
             #pbar.update(inputs.shape[0])
             pbar.update(1)
-        
+
         pbar.set_description(f"Epoch {epoch} validation")
         net.eval()
         # Validation
@@ -98,7 +98,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
                 val_per_class_dice += metrics["dice"]
 
                 num_val_batches += 1
-                
+
                 pbar.update(1)
 
             # Write to tensorboard
@@ -111,14 +111,14 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             writer.add_scalar("validation_metrics/recall", val_recall/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/specificity", val_specificity/num_val_batches, epoch)
             writer.add_scalar("validation_metrics/dice", val_dice/num_val_batches, epoch)
-            
+
             for i, name in enumerate(net.class_names):
                 writer.add_scalar(f"dice/{name}", val_per_class_dice[i]/num_val_batches, epoch)
 
             writer.add_scalar("loss/validation", val_loss/num_val_batches, epoch)
 
             writer.add_scalar("loss/train", train_loss/num_batches, epoch)
-            
+
             writer.add_scalar("learning rate", optimizer.param_groups[0]['lr'], epoch)
 
         # Save model checkpoints
