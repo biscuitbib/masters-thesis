@@ -2,23 +2,22 @@ from contextlib import contextmanager
 import nibabel as nib
 import torch
 from pathlib import Path
-from typing import List
 
-class ImageSeries:
+class ImageTKR:
     """
-    Image series and medical outcome label
+    Image and medical outcome label
     """
-    def __init__(self, identifier, image_paths: List[Path], label=None,sample_weight=1.0, image_transform=None):
+    def __init__(self, identifier, image_path: Path, label=None, sample_weight=1.0, image_transform=None):
         self.predict_mode = label is not None
         self.identifier = identifier
         self.sample_weight = sample_weight
         self.image_transform = image_transform
 
-        self.image_paths = image_paths
+        self.image_path = image_path
 
-        self._image_objs = [nib.load(filename) for filename in self.image_paths]
+        self._image_obj = nib.load(self.image_path)
 
-        self._images = None
+        self._image = None
         self._label = label
 
         #TODO implement view interpolator
@@ -27,27 +26,22 @@ class ImageSeries:
         self.im_dtype = torch.float32
         self.lab_dtype = torch.uint8
 
-    def _load_image_objects(self):
-        return [nib.load(filename) for filename in self.image_paths]
-
     @property
     def is_loaded(self):
         return self._image is not None
 
     @property
     def image(self):
-        if self._images is None:
-            self._images = []
-            for obj in self._image_objs:
-                image= torch.from_numpy(obj.get_fdata(caching='unchanged')).type(self.im_dtype)
+        if self._image is None:
+            image= torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
 
-                if self.image_transform:
-                    image = self.image_transform(image)
+            if self.image_transform:
+                image = self.image_transform(image)
 
-                if image.ndim == 3:
-                    image.unsqueeze(0)
+            if image.ndim == 3:
+                image.unsqueeze(0)
 
-                self._images.append(image)
+            self._image = image
 
         return self._image
 

@@ -44,6 +44,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
         num_batches = 0
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)
+            
             # zero the parameter gradients
             optimizer.zero_grad()
 

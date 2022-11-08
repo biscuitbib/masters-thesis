@@ -3,8 +3,6 @@ Parts of the U-Net model:
 Reworked from
 https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_parts.py
 """
-
-from re import M
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -119,4 +117,5 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x):
-        return self.encoder(x)
+        x = self.encoder(x)
+        return x

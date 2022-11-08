@@ -8,7 +8,7 @@ from .unet_blocks import *
 
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, image_size, encoding_size=1000, class_names=None):
-        super(UNet, self).__init__()
+        super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.class_names = class_names
@@ -42,7 +42,8 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
 
         if encode:
-            logits = self.encoder(x)
+            print(x5.shape)
+            logits = self.encoder(x5)
             return logits
 
         x = self.up1(x5, x4)
