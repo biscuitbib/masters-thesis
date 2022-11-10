@@ -20,7 +20,7 @@ class SliceLoader(IterableDataset):
         self.image_transform = image_transform
         self.label_transform = label_transform
         self.only_fg = only_fg
-        
+
     def __len__(self):
         return self.slices_per_epoch
 
@@ -52,30 +52,30 @@ class SliceLoader(IterableDataset):
 
             # transpose volume to make new first axis
             image_transpose = image_volume.permute(axis_to_permute)
-            #label_transpose = label_volume.permute(axis_to_permute)
+            label_transpose = label_volume.permute(axis_to_permute)
 
             slice_depth = np.random.randint(image_transpose.shape[0])
 
             image_slice = image_transpose[slice_depth, :, :]
-            #label_slice = label_transpose[slice_depth, :, :]
+            label_slice = label_transpose[slice_depth, :, :]
 
-            #valid_labels = (label_slice != 0) * (label_slice < 8)
+            valid_labels = (label_slice != 0) * (label_slice < 8)
             if True or self.only_fg and torch.sum(valid_labels > 0):
                 has_fg = True
-                
+
             i += 1
-            
+
 
         if np.random.random() <= 1/3:
             displacement_val = np.random.randn(2, 5, 5) * 5.
             displacement = torch.tensor(displacement_val)
-            #[image_slice, label_slice] = etorch.deform_grid([image_slice, label_slice], displacement, order=0)
-            image_slice = etorch.deform_grid(image_slice, displacement, order=0)
+            [image_slice, label_slice] = etorch.deform_grid([image_slice, label_slice], displacement, order=0)
+            #image_slice = etorch.deform_grid(image_slice, displacement, order=0)
 
-        
+
         image_slice -= image_slice.min()
         image_slice /= image_slice.max()
 
         image_slice = image_slice.unsqueeze(0)
 
-        return image_slice, label_volume#label_slice
+        return image_slice, label_slice

@@ -4,6 +4,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
+from time import time
 
 from thesisproject.utils import get_multiclass_metrics, create_overlay_figure, create_confusion_matrix_figure
 
@@ -37,14 +38,16 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
     # Training
     for epoch in range(start_epoch, num_epochs):
+        start_time = time()
         net.train()
-        pbar = tqdm(total=len(train_loader) + len(val_loader), position=0, leave=True)
-        pbar.set_description(f"Epoch {epoch} training")
+        #pbar = tqdm(total=len(train_loader) + len(val_loader), position=0, leave=True)
+        #pbar.set_description(f"Epoch {epoch} training")
+        print(f"Epoch {epoch} ", end="")
         train_loss = 0.0
         num_batches = 0
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data[0].to(device), data[1].to(device)
-            
+
             # zero the parameter gradients
             optimizer.zero_grad()
 
@@ -62,9 +65,10 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
             num_batches += 1
 
             #pbar.update(inputs.shape[0])
-            pbar.update(1)
+            #pbar.update(1)
 
-        pbar.set_description(f"Epoch {epoch} validation")
+        #pbar.set_description(f"Epoch {epoch} validation")
+
         net.eval()
         # Validation
         with torch.no_grad():
@@ -100,7 +104,7 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
                 num_val_batches += 1
 
-                pbar.update(1)
+                #pbar.update(1)
 
             # Write to tensorboard
             overlay_fig, _ = create_overlay_figure(inputs, labels, outputs, images_per_batch=4)
@@ -122,6 +126,8 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
 
             writer.add_scalar("learning rate", optimizer.param_groups[0]['lr'], epoch)
 
+            print(f"done! Train/val loss: {round(train_loss/num_batches, 4)}/{round(val_loss/num_val_batches, 4)} ", end="")
+
         # Save model checkpoints
         torch.save({
             "epoch": epoch,
@@ -133,8 +139,11 @@ def training_loop(net, criterion, optimizer, train_loader, val_loader, num_epoch
         # Step learning rate scheduler
         scheduler.step(val_dice/num_val_batches)
 
+        elapsed_time = time() - start_time
+        print(f"(took {elapsed_time}ms)")
+
     # Save final model
     torch.save(net.state_dict(), model_path)
-    pbar.close()
+    #pbar.close()
 
     print('Finished Training')
