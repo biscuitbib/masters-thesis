@@ -1,19 +1,16 @@
 import numpy as np
+import pytorch_lightning as pl
 import torch
-from torch import Tensor, nn, optim
 import torch.nn.functional as F
 import torchvision.transforms as T
-from torchvision.transforms.functional import pad
-from torch.utils.data import DataLoader
-from multiprocessing import cpu_count
-
+from pytorch_lightning.callbacks import EarlyStopping
 from thesisproject.data.utils import get_slice_loaders
-from thesisproject.models import UNet
-from thesisproject.train import training_loop
+from thesisproject.models import LitUNet
+from torch.utils.data import DataLoader
 
 
 class SquarePad:
-    def __call__(self, image: Tensor):
+    def __call__(self, image: torch.Tensor):
         imsize = image.shape
         max_edge = np.argmax(imsize)
         pad_amounts = [imsize[max_edge] - imsize[0], imsize[max_edge] - imsize[1], imsize[max_edge] - imsize[2]]
@@ -58,19 +55,29 @@ label_keys = ["Lateral femoral cart.",
 label_keys = ["Sphere"]
 """
 
-net = UNet(1, 9, 384, class_names=label_keys)
-#net = UNet(1, 2, 100, class_names=label_keys)
+unet_args = (1, 9, 384) # input channels, output classes, image size
+unet_kwargs = {"class_names": label_keys}
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr=5e-5)
+unet = LitUNet(
+    train_data,
+    val_dataset=val_data,
+    unet_args=unet_args,
+    unet_kwargs=unet_kwargs
+)
+ #unet = UNet(1, 2, 100, class_names=label_keys)
 
-training_loop(
-    net,
-    criterion,
-    optimizer,
-    train_loader,
-    val_loader,
-    num_epochs=30,
-    cont=False,
-    model_name="unet"
+cont = False
+
+early_stopping = EarlyStopping('val_loss')
+
+trainer = pl.Trainer(
+    fast_dev_run=True, #Disable when training
+    num_sanity_val_steps=2,
+    callbacks=[early_stopping]
+)
+
+trainer.fit(
+    model=unet,
+    default_root_dir="model_saves/unet/",
+    ckpt_path="model_saves/unet/checkpoint.ckpt" if cont else None
 )
