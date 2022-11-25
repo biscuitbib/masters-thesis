@@ -15,10 +15,10 @@ class Flip:
 
     def __call__(self, image):
          # Flip coronal plane
-        image = torch.flip(image, dims=(1))
+        image = torch.flip(image, dims=(1,))
 
         if self.is_right:
-            image = torch.flip(image, dims=(2))
+            image = torch.flip(image, dims=(2,))
 
         return image
 
@@ -78,7 +78,7 @@ class ImageSeriesDataset(Dataset):
 
             subjects.append(image_series)
 
-        return subjects
+        return torch.tensor(subjects)
 
     def _get_subject_knee_images_dict(self):
         subject_id_and_knee = self.subjects_df.sort_values("subject_id_and_knee")["subject_id_and_knee"].values

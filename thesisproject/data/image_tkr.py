@@ -18,7 +18,7 @@ class ImageTKR:
         self._image_obj = nib.load(self.image_path)
 
         self._image = None
-        self._label = label
+        self._label = torch.tensor(label)
 
         #TODO implement view interpolator
         self._interpolator = None
@@ -33,15 +33,15 @@ class ImageTKR:
     @property
     def image(self):
         if self._image is None:
-            image= torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
+            image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
 
             if self.image_transform:
                 image = self.image_transform(image)
 
             if image.ndim == 3:
-                image.unsqueeze(0)
+                image = image.unsqueeze(0)
 
-            self._image = image
+            self._image = image.unsqueeze(0)
 
         return self._image
 
@@ -50,10 +50,10 @@ class ImageTKR:
         return self._label
 
     def load(self):
-        self._images
+        self._image
 
     def unload(self):
-        self._images = None
+        self._image = None
 
     @contextmanager
     def loaded_in_context(self):

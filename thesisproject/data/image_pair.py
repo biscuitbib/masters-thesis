@@ -56,8 +56,9 @@ class ImagePair:
             if self.image_transform:
                 self._image = self.image_transform(self._image)
 
+        # Add channel dim
         if self._image.ndim == 3:
-            self._image.unsqueeze(0)
+            self._image = self._image.unsqueeze(0)
 
         return self._image
 
@@ -68,6 +69,10 @@ class ImagePair:
                 self._label = torch.from_numpy(self._label_obj.get_fdata(caching="unchanged")).type(self.lab_dtype)
                 if self.label_transform:
                     self._label = self.label_transform(self._label)
+
+                # Add channel dim
+                if self._label.ndim == 3:
+                    self._label = self._label.unsqueeze(0)
 
             except AttributeError:
                 return None

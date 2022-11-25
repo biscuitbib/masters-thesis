@@ -88,6 +88,11 @@ class Out_Conv(nn.Module):
         x = self.conv(x)
         return x
 
+class Flatten(torch.nn.Module):
+    def forward(self, x):
+        batch_size = x.shape[0]
+        return x.view(batch_size, -1)
+
 class Encoder(nn.Module):
     def __init__(self, in_channels, fc_in, vector_size):
         super().__init__()
@@ -110,6 +115,7 @@ class Encoder(nn.Module):
             ),
             nn.ReLU(),
             nn.BatchNorm2d(in_channels//4),
+            nn.Flatten(),
             nn.Linear(
                 fc_in,
                 vector_size

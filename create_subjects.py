@@ -2,7 +2,6 @@ import os
 import nibabel as nib
 import numpy as np
 import pandas as pd
-import h5py
 from typing import List, Set
 import re
 
@@ -134,13 +133,14 @@ for i, p in TKR_df.iterrows():
 dataset_df = pd.concat([dataset_df, TKR_df.drop(exclude_TKR_indices)], axis=0)
 
 # save samples
-dataset_df.to_csv("subjects.csv")
+dataset_df.to_csv("subjects.csv", index=False)
 
 """
 Get images from subjects
 """
 image_filenames = set(os.listdir("/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"))
 image_files = []
+image_df = None
 
 for subject_idx, subject_info in dataset_df.iterrows():
     last_visit_right = 12
@@ -156,7 +156,24 @@ for subject_idx, subject_info in dataset_df.iterrows():
 
     right, left = get_patient_images_from_id(image_filenames, subject_id, last_visit_right=last_visit_right, last_visit_left=last_visit_left)
 
+    for file in (right + left):
+        is_right = file[8] == "R"
+        visit = int(file[15:17]) if is_right else int(file[14:16])
+        df = pd.DataFrame({
+            "filename": [file],
+            "TKR": [subject_info["TKR"]],
+            "is_right": [is_right],
+            "subject_id_and_knee": [subject_info["subject_id_and_knee"]],
+            "visit": [visit]
+        })
+        if image_df is None:
+            image_df = df
+        else:
+            image_df = pd.concat([image_df, df], axis=0)
+
     image_files += right + left
+
+image_df.to_csv("image_samples.csv", index=False)
 
 print(f"Found {len(image_files)} images")
 with open("subject_images.txt", "w") as f:

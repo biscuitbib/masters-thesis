@@ -1,4 +1,4 @@
-from .metrics import get_multiclass_metrics
+from .metrics import get_multiclass_metrics, save_metrics_csv
 from .image import (
     create_animation,
     create_overlay_figure,

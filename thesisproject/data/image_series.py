@@ -32,7 +32,7 @@ class ImageSeries:
 
     @property
     def is_loaded(self):
-        return self._image is not None
+        return self._images is not None
 
     @property
     def image(self):
@@ -49,7 +49,7 @@ class ImageSeries:
 
                 self._images.append(image)
 
-        return self._image
+        return self._images
 
     @property
     def label(self):

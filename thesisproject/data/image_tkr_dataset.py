@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 import torchvision.transforms as T
 from pathlib import Path
 from contextlib import contextmanager
+from typing import Union, List
 
 from .image_tkr import ImageTKR
 
@@ -13,17 +14,17 @@ class Flip:
     def __init__(self, is_right):
         self.is_right = is_right
 
-    def __call__(self, image):
+    def __call__(self, image: torch.Tensor):
          # Flip coronal plane
-        image = torch.flip(image, dims=(1))
+        image = torch.flip(image, dims=(1,))
 
         if self.is_right:
-            image = torch.flip(image, dims=(2))
+            image = torch.flip(image, dims=(2,))
 
         return image
 
 class ImageTKRDataset(Dataset):
-    def __init__(self, image_base_dir, subjects_csv, predict_mode=False, image_transform=None):
+    def __init__(self, image_base_dir: str, subjects_csv: Union[pd.DataFrame, str], predict_mode=False, image_transform=None):
         """
         image_base_dir is the folder containing the images
         subjects_csv contains the fields: filename, subject_id_and_knee, is_right, TKR, visit
@@ -31,7 +32,9 @@ class ImageTKRDataset(Dataset):
         The samples are individual knees of individual subjects
         """
         self.image_base_dir = Path(image_base_dir)
-        self.subjects_df = pd.read_csv(subjects_csv)
+        self.subjects_df = subjects_csv
+        if type(self.subjects_df) == str:
+            self.subjects_df = pd.read(self.subjects_df)
         self.predict_mode = predict_mode
 
         self.image_transform = image_transform
@@ -63,11 +66,11 @@ class ImageTKRDataset(Dataset):
         subjects = []
         for i, row in self.subjects_df.iterrows():
             is_right = row["is_right"]
-            TKR = int(row["TKR"])
             filename = row["filename"]
+            TKR = int(row["TKR"])
             subject_id_and_knee = row["subject_id_and_knee"]
 
-            transform = T.Compose([self.image_transform])#, Flip(is_right)])
+            transform = T.Compose([self.image_transform, Flip(is_right)])
 
             image_tkr = ImageTKR(
                 subject_id_and_knee,
@@ -79,7 +82,7 @@ class ImageTKRDataset(Dataset):
             subjects.append(image_tkr)
 
         return subjects
-    
+
     @contextmanager
     def get_random_image(self):
         idx = np.random.randint(len(self))
