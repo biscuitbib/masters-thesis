@@ -4,7 +4,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-from thesisproject.data.image_pair_dataset import ImagePairDataset
+from .image_pair_dataset import ImagePairDataset
 from thesisproject.data.image_queue import ImageQueue
 from thesisproject.data.loading_pool import LoadingPool
 from thesisproject.data.slice_loader import SliceLoader

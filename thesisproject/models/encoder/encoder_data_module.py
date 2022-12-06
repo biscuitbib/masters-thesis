@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
-from thesisproject.data.image_tkr_dataset import ImageTKRDataset
+from .image_tkr_dataset import ImageTKRDataset
 from thesisproject.data.slice_series_loader import SliceSeriesLoader
 
 class SquarePad:
@@ -68,7 +68,7 @@ class EncoderDataModule(pl.LightningDataModule):
         """
         TODO split into train and val
         """
-        subjects_df = pd.read_csv(self.subjects_csv).sample(frac=1).head(20)
+        subjects_df = pd.read_csv(self.subjects_csv).sample(frac=1)
 
         total_train_df, test_df = train_test_split(subjects_df, test_size=self.test_ratio)
         train_df, val_df = train_test_split(total_train_df, test_size=self.val_ratio)

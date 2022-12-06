@@ -6,15 +6,14 @@ from torch.utils.data import Dataset
 import torchvision.transforms as T
 from pathlib import Path
 from contextlib import contextmanager
-from typing import Union, List
 
-from .image_tkr import ImageTKR
+from .image_series import ImageSeries
 
 class Flip:
     def __init__(self, is_right):
         self.is_right = is_right
 
-    def __call__(self, image: torch.Tensor):
+    def __call__(self, image):
          # Flip coronal plane
         image = torch.flip(image, dims=(1,))
 
@@ -23,8 +22,8 @@ class Flip:
 
         return image
 
-class ImageTKRDataset(Dataset):
-    def __init__(self, image_base_dir: str, subjects_csv: Union[pd.DataFrame, str], predict_mode=False, image_transform=None):
+class ImageSeriesDataset(Dataset):
+    def __init__(self, image_base_dir, subjects_df, predict_mode=False, image_transform=None):
         """
         image_base_dir is the folder containing the images
         subjects_csv contains the fields: filename, subject_id_and_knee, is_right, TKR, visit
@@ -32,14 +31,12 @@ class ImageTKRDataset(Dataset):
         The samples are individual knees of individual subjects
         """
         self.image_base_dir = Path(image_base_dir)
-        self.subjects_df = subjects_csv
-        if type(self.subjects_df) == str:
-            self.subjects_df = pd.read(self.subjects_df)
+        self.subjects_df = subjects_df
         self.predict_mode = predict_mode
 
         self.image_transform = image_transform
 
-        self._subjects = self._get_image_tkr_objects()
+        self._subjects = self._get_image_series_objects()
 
     def __len__(self):
         return len(self._subjects)
@@ -59,27 +56,28 @@ class ImageTKRDataset(Dataset):
         for subject in self._subjects:
             subject.unload()
 
-    def _get_image_tkr_objects(self):
+    def _get_image_series_objects(self):
         """
         Initialize all ImageSeries objects, with unloaded image-files
         """
         subjects = []
-        for i, row in self.subjects_df.iterrows():
-            is_right = row["is_right"]
-            filename = row["filename"]
-            TKR = int(row["TKR"])
-            subject_id_and_knee = row["subject_id_and_knee"]
+        subject_id_and_knees = self.subjects_df["subject_id_and_knee"].unique()
+        for subject_id_and_knee in subject_id_and_knees:
+            rows = self.subjects_df[self.subjects_df["subject_id_and_knee"] == subject_id_and_knee]
+            is_right = rows["is_right"].values[0]
+            TKR = int(rows["TKR"].values[0])
+            filenames = rows["filename"].values
 
             transform = T.Compose([self.image_transform, Flip(is_right)])
 
-            image_tkr = ImageTKR(
+            image_series = ImageSeries(
                 subject_id_and_knee,
-                self.image_base_dir / Path(filename),
+                [self.image_base_dir / Path(filename) for filename in filenames],
                 label=TKR,
                 image_transform=transform
             )
 
-            subjects.append(image_tkr)
+            subjects.append(image_series)
 
         return subjects
 

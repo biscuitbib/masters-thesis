@@ -33,7 +33,10 @@ class ImageTKR:
     @property
     def image(self):
         if self._image is None:
-            image = torch.from_numpy(self._image_obj.get_fdata(caching='unchanged')).type(self.im_dtype)
+            try:
+                image = torch.from_numpy(self._image_obj.get_fdata(caching="unchanged")).type(self.im_dtype)
+            except:
+                raise IOError(f"{self.image_path} is broken!")
 
             if self.image_transform:
                 image = self.image_transform(image)

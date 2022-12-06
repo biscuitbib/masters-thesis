@@ -70,4 +70,4 @@ class SliceLoader(IterableDataset):
 
         label_slice = label_slice.squeeze(0) # remove channel dim
 
-        return image_slice, label_slice
+        return [image_slice, label_slice]

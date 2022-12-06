@@ -156,7 +156,8 @@ for subject_idx, subject_info in dataset_df.iterrows():
 
     right, left = get_patient_images_from_id(image_filenames, subject_id, last_visit_right=last_visit_right, last_visit_left=last_visit_left)
 
-    for file in (right + left):
+    file_set = right if subject_info["is_right"] else left
+    for file in file_set:
         is_right = file[8] == "R"
         visit = int(file[15:17]) if is_right else int(file[14:16])
         df = pd.DataFrame({

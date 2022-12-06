@@ -75,4 +75,4 @@ class SliceSeriesLoader(IterableDataset):
         if image_slices.shape[0] == 1:
             image_slices = image_slices.squeeze(0)
 
-        return image_slices, label
+        return [image_slices, label]

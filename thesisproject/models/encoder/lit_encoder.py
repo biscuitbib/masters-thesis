@@ -1,18 +1,9 @@
-"""
-U-Net model to be used in Multiplaner U-Net.
-Reworked from
-https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
-"""
-import os
-
-import nibabel as nib
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from collections import OrderedDict
-from thesisproject.models.unet import UNet
-from thesisproject.utils import (create_overlay_figure, get_multiclass_metrics,
-                                 save_metrics_csv)
+from .encoder import Encoder
+from thesisproject.models.mpu import UNet
+from thesisproject.utils import get_multiclass_metrics, save_metrics_csv
 from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -23,23 +14,29 @@ class LitEncoder(pl.LightningModule):
     Takes a pretrained U-net and.
     Training and validation is done on slices of image volumes and predictions are made on entire image volumes.
     """
-    def __init__(self, unet: UNet):
+    def __init__(self, unet: UNet, encoder: Encoder)
         super().__init__()
         self.unet = unet
         self.unet.encode = True
-
+        self.encoder = encoder
         self.fc = nn.Linear(self.unet.encoding_size, 2) #Linear layer for pretraining
 
         self.criterion = nn.CrossEntropyLoss()
         self.lr = 1e-4
 
     def forward(self, x):
-        return self.unet(x)
+        x = self.unet(x)
+        x = self.encoder(x)
+        return x
 
     def training_step(self, batch, _batch_idx):
         images, labels = batch[0], batch[1]
 
-        encodings = self.unet(images)
+        self.unet.eval()
+        with torch.no_grad():
+            unet_bottleneck = self.unet(images)
+
+        encodings = self.encoder(unet_bottleneck)
         outputs = self.fc(encodings)
 
         loss = self.criterion(outputs, labels)
@@ -50,7 +47,11 @@ class LitEncoder(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         images, labels = batch[0], batch[1]
 
-        encodings = self.unet(images)
+        self.unet.eval()
+        with torch.no_grad():
+            unet_bottleneck = self.unet(images)
+
+        encodings = self.encoder(unet_bottleneck)
         outputs = self.fc(encodings)
 
         loss = self.criterion(outputs, labels)
@@ -70,7 +71,11 @@ class LitEncoder(pl.LightningModule):
     def test_step(self, batch, _batch_idx):
         images, labels = batch[0], batch[1]
 
-        encodings = self.unet(images)
+        self.unet.eval()
+        with torch.no_grad():
+            unet_bottleneck = self.unet(images)
+
+        encodings = self.encoder(unet_bottleneck)
         outputs = self.fc(encodings)
 
         loss = self.criterion(outputs, labels)
@@ -88,7 +93,8 @@ class LitEncoder(pl.LightningModule):
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.unet.parameters(), lr=self.lr)
+        params = list(self.encoder.parameters()) + list(self.fc.parameters())
+        optimizer = optim.Adam(params, lr=self.lr)
         lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4)
         return {
             "optimizer": optimizer,

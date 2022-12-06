@@ -1,15 +1,15 @@
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
-from thesisproject.data import SegmentationDataModule
-from thesisproject.models import LitMPU, UNet
+
+from thesisproject.models.mpu import LitMPU, UNet, SegmentationDataModule
 
 # Data
 path = "../knee_data/"
 
 segmentation_data = SegmentationDataModule(
     path,
-    batch_size=12,
+    batch_size=8,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000
 )

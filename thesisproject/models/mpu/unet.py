@@ -10,7 +10,7 @@ class UNet(nn.Module):
     """
     U-net used in the multiplanar U-net.
     """
-    def __init__(self, n_channels, n_classes, image_size, encoding_size=1000, class_names=None, encode=False):
+    def __init__(self, n_channels, n_classes, image_size, class_names=None, encode=False):
         """
         Parameters:
             n_channels: Number of channels in the input image, e.g. for RGB images n_channels = 3
@@ -24,9 +24,9 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.class_names = class_names
-        self.encoding_size = encoding_size
         self.image_size = image_size # Assumes square images
         self.encode = encode
+        self.fc_in = self._calculate_fc_in() # Flattened size of bottleneck
 
         # Hard coded increase of filters by a factor of sqrt(2) for each layer
         self.inc = Double_Conv(n_channels, 90)
@@ -34,12 +34,6 @@ class UNet(nn.Module):
         self.down2 = Down(181, 362)
         self.down3 = Down(362, 724)
         self.down4 = Down(724, 1448)
-
-        self.encoder = Encoder(
-            1448,
-            self._calculate_fc_in(),
-            encoding_size
-        )
 
         self.up1 = Up(1448, 724)
         self.up2 = Up(724, 362)
@@ -55,8 +49,7 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
 
         if self.encode:
-            logits = self.encoder(x5)
-            return logits
+            return x5
 
         x = self.up1(x5, x4)
         x = self.up2(x, x3)

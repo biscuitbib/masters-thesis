@@ -45,9 +45,11 @@ class ImageSeries:
                     image = self.image_transform(image)
 
                 if image.ndim == 3:
-                    image.unsqueeze(0)
+                    image = image.unsqueeze(0) # channel dim
 
                 self._images.append(image)
+
+            self._images = torch.stack(self._images, dim=0)
 
         return self._images
 

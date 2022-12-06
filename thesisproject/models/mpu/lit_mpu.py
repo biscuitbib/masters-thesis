@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch.nn.functional as F
 import torch
 from collections import OrderedDict
-from thesisproject.models import UNet
+from .unet import UNet
 from thesisproject.utils import (create_overlay_figure, get_multiclass_metrics,
                                  save_metrics_csv)
 from torch import nn, optim
@@ -25,6 +25,9 @@ class LitMPU(pl.LightningModule):
         self.criterion = nn.CrossEntropyLoss()
         self.batch_size = 8
         self.lr = 5e-5
+
+    def forward(self, batch):
+        return self.unet(batch)
 
     def training_step(self, batch, _batch_idx):
         images, labels = batch[0], batch[1]

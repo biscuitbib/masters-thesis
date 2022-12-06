@@ -39,3 +39,15 @@ class UnetEncodeLSTM(nn.Module):
         seq = self.unet.forward(slice_batch, encode=True)
         out = self.lstm(seq)
         return out
+
+class LSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, n_classes, num_layers=1):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, n_classes)
+
+    def forward(self, seq):
+        out, _ = self.lstm(seq)
+        last_out = out[:, -1, ...] # last output for each sequence in the batch
+        out = self.fc(last_out)
+        return out
