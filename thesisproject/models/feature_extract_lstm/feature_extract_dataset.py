@@ -7,34 +7,18 @@ import torchvision.transforms as T
 from pathlib import Path
 from contextlib import contextmanager
 
-from .image_series import ImageSeries
-
-class Flip:
-    def __init__(self, is_right):
-        self.is_right = is_right
-
-    def __call__(self, image):
-         # Flip coronal plane
-        image = torch.flip(image, dims=(1,))
-
-        if self.is_right:
-            image = torch.flip(image, dims=(2,))
-
-        return image
+from .feature_extract_vector import FeatureExtractVector
 
 class ImageSeriesDataset(Dataset):
-    def __init__(self, image_base_dir, subjects_df, predict_mode=False, image_transform=None):
+    def __init__(self, subjects_df, predict_mode=False):
         """
         image_base_dir is the folder containing the images
         subjects_csv contains the fields: filename, subject_id_and_knee, is_right, TKR, visit
 
         The samples are individual knees of individual subjects
         """
-        self.image_base_dir = Path(image_base_dir)
         self.subjects_df = subjects_df
         self.predict_mode = predict_mode
-
-        self.image_transform = image_transform
 
         self._subjects = self._get_image_series_objects()
 
@@ -58,30 +42,22 @@ class ImageSeriesDataset(Dataset):
 
     def _get_image_series_objects(self):
         """
-        Initialize all ImageSeries objects, with unloaded image-files
+        Initialize all feature vectors
         """
         subjects = []
         subject_id_and_knees = self.subjects_df["subject_id_and_knee"].unique()
         for subject_id_and_knee in subject_id_and_knees:
+            # Extract feature vectors and timedeltas
             rows = self.subjects_df[self.subjects_df["subject_id_and_knee"] == subject_id_and_knee]
             rows = rows.sort_values("visit")
-            is_right = rows["is_right"].values[0]
             TKR = int(rows["TKR"].values[0])
-            filenames = rows["filename"].values
-            timedeltas = rows["visit"].values
-            timedeltas -= timedeltas[0]
+            features = rows.loc[:, ~rows.columns.isin(["subject_id_and_knee", "TKR", "filename", "is_right"])]
+            features["visit"] -= features["visit"].min()
+            features = features.values # list of feature vectors
 
-            transform = T.Compose([self.image_transform, Flip(is_right)])
+            feature_vector = FeatureExtractVector(subject_id_and_knee, features, TKR)
 
-            image_series = ImageSeries(
-                subject_id_and_knee,
-                [self.image_base_dir / Path(filename) for filename in filenames],
-                timedeltas=timedeltas,
-                label=TKR,
-                image_transform=transform
-            )
-
-            subjects.append(image_series)
+            subjects.append(feature_vector)
 
         return subjects
 

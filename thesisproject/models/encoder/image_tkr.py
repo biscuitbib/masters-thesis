@@ -36,7 +36,7 @@ class ImageTKR:
             try:
                 image = torch.from_numpy(self._image_obj.get_fdata(caching="unchanged")).type(self.im_dtype)
             except:
-                raise IOError(f"{self.image_path} is broken!")
+                raise OSError(f"image \"{self.image_path}\" is broken")
 
             if self.image_transform:
                 image = self.image_transform(image)
@@ -51,6 +51,10 @@ class ImageTKR:
     @property
     def label(self):
         return self._label
+
+    @property
+    def timedeltas(self):
+        return [0]
 
     def load(self):
         self._image

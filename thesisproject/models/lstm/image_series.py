@@ -8,7 +8,7 @@ class ImageSeries:
     """
     Image series and medical outcome label
     """
-    def __init__(self, identifier, image_paths: List[Path], label=None,sample_weight=1.0, image_transform=None):
+    def __init__(self, identifier, image_paths: List[Path], timedeltas=None, label=None, sample_weight=1.0, image_transform=None):
         self.predict_mode = label is not None
         self.identifier = identifier
         self.sample_weight = sample_weight
@@ -20,15 +20,13 @@ class ImageSeries:
 
         self._images = None
         self._label = label
+        self._timedeltas = torch.tensor(timedeltas)
 
         #TODO implement view interpolator
         self._interpolator = None
 
         self.im_dtype = torch.float32
         self.lab_dtype = torch.uint8
-
-    def _load_image_objects(self):
-        return [nib.load(filename) for filename in self.image_paths]
 
     @property
     def is_loaded(self):
@@ -57,8 +55,12 @@ class ImageSeries:
     def label(self):
         return self._label
 
+    @property
+    def timedeltas(self):
+        return self._timedeltas
+
     def load(self):
-        self._images
+        self._images = self.image()
 
     def unload(self):
         self._images = None

@@ -14,12 +14,16 @@ class LitEncoder(pl.LightningModule):
     Takes a pretrained U-net and.
     Training and validation is done on slices of image volumes and predictions are made on entire image volumes.
     """
-    def __init__(self, unet: UNet, encoder: Encoder)
+    def __init__(self, unet: UNet, encoder: Encoder):
         super().__init__()
         self.unet = unet
         self.unet.encode = True
+
         self.encoder = encoder
-        self.fc = nn.Linear(self.unet.encoding_size, 2) #Linear layer for pretraining
+        self.fc = nn.Sequential(
+            nn.ReLU(),
+            nn.Linear(self.encoder.vector_size, 2)
+        ) #Linear layer for pretraining
 
         self.criterion = nn.CrossEntropyLoss()
         self.lr = 1e-4
@@ -39,6 +43,8 @@ class LitEncoder(pl.LightningModule):
         encodings = self.encoder(unet_bottleneck)
         outputs = self.fc(encodings)
 
+        print(f"pred vs label: {torch.argmax(outputs, dim=1)} {labels}")
+
         loss = self.criterion(outputs, labels)
 
         self.log("loss/train", loss.detach(), on_step=False, on_epoch=True, sync_dist=True)
@@ -51,8 +57,10 @@ class LitEncoder(pl.LightningModule):
         with torch.no_grad():
             unet_bottleneck = self.unet(images)
 
-        encodings = self.encoder(unet_bottleneck)
-        outputs = self.fc(encodings)
+            encodings = self.encoder(unet_bottleneck)
+            outputs = self.fc(encodings)
+
+        print(f"pred vs label: {torch.argmax(outputs, dim=1)} {labels}")
 
         loss = self.criterion(outputs, labels)
 
@@ -60,6 +68,7 @@ class LitEncoder(pl.LightningModule):
         metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=True)
 
         log_values = {
+            "val/class_ratio": np.mean(labels.detach().cpu().numpy()),
             "loss/val_loss": loss.detach(),
             "val/accuracy": np.mean(metrics["accuracy"]),
             "val/precision": np.mean(metrics["precision"]),

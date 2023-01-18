@@ -30,7 +30,7 @@ class SquarePad:
         padded_im = F.pad(image, padding, "constant", 0)
         return padded_im
 
-class FixedLstmDataModule(pl.LightningDataModule):
+class LSTMDataModule(pl.LightningDataModule):
     """
     batch[0] is batch of image slice series B x 1 x C x H x W
     batch[1] is batch of TKR labels B x 1
@@ -40,8 +40,8 @@ class FixedLstmDataModule(pl.LightningDataModule):
         self,
         data_dir: str,
         subjects_csv: str,
-        encoder,
         batch_size: int=8,
+        max_n: int=None,
         train_slices_per_epoch: int=2000,
         val_slices_per_epoch: int=1000,
         test_slices_per_epoch: int=1000,
@@ -49,9 +49,13 @@ class FixedLstmDataModule(pl.LightningDataModule):
     ):
         super().__init__()
         self.data_dir = data_dir
-        self.subjects_csv = subjects_csv
-        self.encoder = encoder
         self.batch_size = batch_size
+
+        self.subjects_df = pd.read_csv(subjects_csv).sample(frac=1)
+        subjects_n = self.subjects_df.shape[0]
+        max_n = max(subjects_n, max_n) if max_n is not None else subjects_n
+        self.subjects_df = self.subjects_df.head(max_n)
+
         self.train_slices_per_epoch = train_slices_per_epoch
         self.val_slices_per_epoch = val_slices_per_epoch
         self.test_slices_per_epoch = test_slices_per_epoch
@@ -64,27 +68,21 @@ class FixedLstmDataModule(pl.LightningDataModule):
         """
         data is list[tuple(input, label)]
         """
-        self.encoder.eval()
-        input_list, target_list = [], []
-        with torch.no_grad():
-            for [image_series, label] in batch:
-                if image_series.ndim == 3:
-                    image_series = image_series.unsqueeze(0)
-
-                encoding_series = self.encoder(image_series)
-                input_list.append(encoding_series)
-                target_list.append(label)
+        input_list, target_list, timedeltas_list = [], [], []
+        for [image_series, label, timedeltas] in batch:
+            if image_series.ndim == 3:
+                image_series = image_series.unsqueeze(0)
+            input_list.append(image_series)
+            target_list.append(label)
+            timedeltas_list.append(timedeltas)
         input_list = pad_sequence(input_list, batch_first=True)
         target_list = torch.tensor(target_list)
-        return [input_list, target_list]
+        timedeltas_list = pad_sequence(timedeltas_list, batch_first=True)
+        return [input_list, target_list, timedeltas_list]
 
     def setup(self, stage: str):
-        """
-        TODO split into train and val
-        """
-        subjects_df = pd.read_csv(self.subjects_csv).sample(frac=1).head(100)
 
-        total_train_df, test_df = train_test_split(subjects_df, test_size=self.test_ratio)
+        total_train_df, test_df = train_test_split(self.subjects_df, test_size=self.test_ratio)
         train_df, val_df = train_test_split(total_train_df, test_size=self.val_ratio)
 
         # train data
@@ -101,7 +99,6 @@ class FixedLstmDataModule(pl.LightningDataModule):
         test_dataset = ImageSeriesDataset(self.data_dir, test_df, image_transform=SquarePad())
 
         self.test_slice_loader = SliceSeriesLoader(test_dataset, slices_per_epoch=self.test_slices_per_epoch, elastic_deform=False)
-
 
     def train_dataloader(self):
         return DataLoader(self.train_slice_loader, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, collate_fn=self.collate_fn)

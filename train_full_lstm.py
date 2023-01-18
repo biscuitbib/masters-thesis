@@ -5,16 +5,16 @@ from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
 
 from thesisproject.models.mpu import UNet, LitMPU
 from thesisproject.models.encoder import Encoder, LitEncoder
-from thesisproject.models.lstm import LSTMDataModule, LSTM, LitFixedLSTM
+from thesisproject.models.lstm import FixedLstmDataModule, LSTM, LitFixedLSTM, LitFullLSTM
 
 # Data
 image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
 subjects_csv = "/home/blg515/image_samples_edit.csv"
 
-lstm_data = LSTMDataModule(
+lstm_data = FixedLstmDataModule(
     image_path,
     subjects_csv,
-    batch_size=12,
+    batch_size=8,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000
 )
@@ -25,14 +25,18 @@ mpu_checkpoint += os.listdir(mpu_checkpoint)[0]
 
 encoder_checkpoint = "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_2774/checkpoints/epoch=22-step=3841.ckpt"
 
+lstm_checkpoint = "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_4001/checkpoints/epoch=16-step=4250.ckpt"
+
 unet = UNet(1, 9, 384)
 lit_mpu = LitMPU(unet).load_from_checkpoint(mpu_checkpoint, unet=unet)
 
 encoder = Encoder(1448, unet.fc_in, 200)
 lit_encoder = LitEncoder(unet, encoder).load_from_checkpoint(encoder_checkpoint, unet=unet, encoder=encoder)
 
-lstm = LSTM(encoder.vector_size + 1, 1000, 2) #input size is vector size + 1 if adding dt
-model = LitFixedLSTM(unet, encoder, lstm)
+lstm = LSTM(encoder.vector_size, 1000, 2)
+lit_lstm = LitFixedLSTM(unet, encoder, lstm).load_from_checkpoint(lstm_checkpoint, unet=unet, encoder=encoder, lstm=lstm)
+
+model = LitFullLSTM(unet, encoder, lstm)
 
 # Callbacks
 early_stopping = EarlyStopping("loss/val_loss", mode="min", min_delta=0.0, patience=15)
@@ -48,7 +52,7 @@ trainer = pl.Trainer(
     devices=num_gpus,
     strategy="ddp" if num_gpus > 1 else None,
     callbacks=[early_stopping, lr_monitor],
-    default_root_dir="model_saves/fixed-lstm/",
+    default_root_dir="model_saves/full-lstm/",
     profiler="simple",
     auto_lr_find=True,
     auto_scale_batch_size=False,
@@ -56,7 +60,7 @@ trainer = pl.Trainer(
     max_epochs=100
 )
 
-#trainer.tune(model, datamodule=lstm_data)
+trainer.tune(model, datamodule=lstm_data)
 
 trainer.fit(
     model=model,

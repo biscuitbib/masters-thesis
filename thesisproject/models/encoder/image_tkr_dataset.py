@@ -70,6 +70,8 @@ class ImageTKRDataset(Dataset):
         for i, row in self.subjects_df.iterrows():
             is_right = row["is_right"]
             filename = row["filename"]
+            if type(filename) != str or len(filename) < 1:
+                continue
             TKR = int(row["TKR"])
             subject_id_and_knee = row["subject_id_and_knee"]
 

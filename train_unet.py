@@ -9,7 +9,7 @@ path = "../knee_data/"
 
 segmentation_data = SegmentationDataModule(
     path,
-    batch_size=8,
+    batch_size=12,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000
 )

@@ -1,5 +1,6 @@
 import os
 
+import pandas as pd
 import nibabel as nib
 import numpy as np
 import pytorch_lightning as pl
@@ -17,7 +18,7 @@ class LitMPU(pl.LightningModule):
     Pytorch Lightning module representing a multiplanar U-net:
     Training and validation is done on slices of image volumes and predictions are made on entire image volumes.
     """
-    def __init__(self, unet: UNet, save_test_preds=False, ):
+    def __init__(self, unet: UNet, save_test_preds=False):
         super().__init__()
         self.unet = unet
         self.save_test_preds = save_test_preds
@@ -49,16 +50,16 @@ class LitMPU(pl.LightningModule):
             self.logger.experiment.add_figure("images/val", overlay_fig, self.current_epoch)
 
         # log metrics
-        metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=True)
+        metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=False)
 
-        log_dice = {f"dice/{class_name}": dice for class_name, dice in zip(self.unet.class_names, metrics["dice"])}
+        log_dice = {f"dice/{class_name}": dice for class_name, dice in zip(self.unet.class_names, metrics["dice"][1:])}
         log_values = {
             "loss/val_loss": loss.detach(),
-            "val/accuracy": np.mean(metrics["accuracy"]),
-            "val/precision": np.mean(metrics["precision"]),
-            "val/recall": np.mean(metrics["recall"]),
-            "val/specificity": np.mean(metrics["specificity"]),
-            "val/dice": np.mean(metrics["dice"]),
+            "val/accuracy": np.mean(metrics["accuracy"][1:]),
+            "val/precision": np.mean(metrics["precision"][1:]),
+            "val/recall": np.mean(metrics["recall"][1:]),
+            "val/specificity": np.mean(metrics["specificity"][1:]),
+            "val/dice": np.mean(metrics["dice"][1:]),
             **log_dice
         }
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
@@ -69,10 +70,10 @@ class LitMPU(pl.LightningModule):
         """
         imagepair = batch[0]
         with imagepair.loaded_in_context():
-            image, label = imagepair.image, imagepair.label
+            image, label = imagepair.image.squeeze(0), imagepair.label
 
             image -= torch.min(image)
-            image /= torch.max(image)
+            image /= max(1, torch.max(image))
 
             # Softmax prediction
             prediction = self._predict_volume(image, class_index=False)
@@ -87,13 +88,24 @@ class LitMPU(pl.LightningModule):
             metrics = get_multiclass_metrics(
                 prediction.unsqueeze(0).detach().cpu(), # adding batch dim.
                 label.unsqueeze(0).unsqueeze(0).detach().cpu(), # adding batch and channel dim.
-                remove_bg=True
+                remove_bg=False
             )
 
+            print(f"""
+
+image: {imagepair.identifier}
+metrics:
+{metrics}
+
+            """)
+
             for metric_key, metric_values in metrics.items():
-                self.per_class_metrics[metric_key] += metric_values
+                self.per_class_metrics[metric_key] += metric_values[1:]
+
+            self.num_test_samples += 1
 
     def on_test_start(self):
+        self.num_test_samples = 0
         self.per_class_metrics = {
             "accuracy": np.zeros(self.unet.n_classes - 1),
             "precision": np.zeros(self.unet.n_classes - 1),
@@ -103,6 +115,7 @@ class LitMPU(pl.LightningModule):
         }
 
     def on_test_end(self):
+        self.per_class_metrics = {key: val / self.num_test_samples for key, val in self.per_class_metrics.items()}
         save_metrics_csv(self.per_class_metrics, self.unet.class_names)
 
     def _predict_view(self, image_volume):
@@ -168,12 +181,10 @@ class LitMPU(pl.LightningModule):
         else:
             return prediction_image / 3.
 
-    def predict_step(self, batch, _batch_idx):
+    def predict_step(self, image_volume):
         """
-        Create prediction volume for the image in batch.
-        Expects a batch of a single image_volume
+        Expects  a single image_volume
         """
-        image_volume = batch[0]
         return self._predict_volume(image_volume)
 
     def configure_optimizers(self):

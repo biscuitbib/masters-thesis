@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from thesisproject.data import extract_features
-from thesisproject.models import LitMPU, UNet
+from thesisproject.models.mpu import LitMPU, UNet
 from tqdm import tqdm
 from time import time
 
@@ -20,7 +20,9 @@ if len(args) == 2:
     num_jobs = int(args[1])
 
 image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
-image_files = np.loadtxt("/home/blg515/masters-thesis/subject_images.txt", dtype="str")
+
+subjects_df = pd.read_csv("/home/blg515/image_samples_edit.csv")
+image_files = subjects_df["filename"].values #np.loadtxt("/home/blg515/masters-thesis/subject_images.txt", dtype="str")
 
 assert os.path.exists(image_path)
 
@@ -70,14 +72,13 @@ label_keys = ["Lateral femoral cart.",
 
 unet = UNet(1, 9, 384, class_names=label_keys)
 
-checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_4476/checkpoints/" + os.listdir("/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_4476/checkpoints/")[0]
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9098/checkpoints/epoch=38-step=6513.ckpt"
 print(f"Trying to load from checkpoint:\n{checkpoint_path}")
 
-litunet = LitMPU.load_from_checkpoint(checkpoint_path, unet=unet)
+litunet: LitMPU = LitMPU.load_from_checkpoint(checkpoint_path, unet=unet)
 litunet.eval()
-
-subjects_df = pd.read_csv("subjects.csv", index_col="subject_id_and_knee")
+litunet.to(device)
 
 computed_files = []
 if os.path.exists("feature_extract.csv"):
@@ -115,31 +116,38 @@ with torch.no_grad():
         scan_tensor = volume_transform(torch.from_numpy(scan).float())
 
         scan_tensor -= scan_tensor.min()
-        scan_tensor /= scan_tensor.max()
+        scan_tensor /= max(1, scan_tensor.max())
+        scan_tensor = scan_tensor.to(device)
 
         #TODO fix misuse of prediction for lightning module
         start = time()
-        prediction = litunet.predict_step([scan_tensor], 0)
+        prediction = litunet.predict_step(scan_tensor)
         end = time()
 
         pbar.set_description(f"{filename} (pred: {round(end - start, 4)}s)")
 
         start = time()
-        extracted_features = extract_features(scan_tensor.detach().cpu().numpy(),
-        prediction.detach().cpu().numpy())
+        try:
+            extracted_features = extract_features(scan_tensor.detach().cpu().numpy(), prediction.detach().cpu().numpy())
+        except KeyboardInterrupt:
+            print("Shutting down.")
+            exit()
+        except:
+            print(f"Failed feature extraction for image: {filename}")
+            continue
         end = time()
 
         pbar.set_description(f"{filename} (extract: {round(end - start, 4)}s)")
 
-        subject_id_and_knee =  str(subject_id) + ("-R" if is_right else "-L"),
-        subject_row = subjects_df.loc[subject_id_and_knee]
+        subject_id_and_knee =  str(subject_id) + ("-R" if is_right else "-L")
+        subject_row = subjects_df[subjects_df["filename"] == filename].head(1)
 
         row_df = pd.DataFrame([{
             "subject_id_and_knee": subject_id_and_knee,
             "is_right": is_right,
             "visit": visit,
             "filename": filename,
-            "TKR": subject_row["TKR"],
+            "TKR": subject_row["TKR"].iloc[0],
             **extracted_features}])
 
         df = pd.concat([df, row_df])

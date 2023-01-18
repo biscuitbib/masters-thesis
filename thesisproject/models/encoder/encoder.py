@@ -3,7 +3,11 @@ from torch import nn
 class Encoder(nn.Module):
     def __init__(self, in_channels, fc_in, vector_size):
         super().__init__()
+        self.in_channels = in_channels
+        self.fc_in = fc_in
+        self.vector_size = vector_size
         self.encoder = nn.Sequential(
+            nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(
                 in_channels,
@@ -12,7 +16,7 @@ class Encoder(nn.Module):
                 padding="same"
             ),
             nn.ReLU(),
-            nn.BatchNorm2d(in_channels//2),
+            #nn.BatchNorm2d(in_channels//2),
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(
                 in_channels//2,
@@ -21,7 +25,7 @@ class Encoder(nn.Module):
                 padding="same"
             ),
             nn.ReLU(),
-            nn.BatchNorm2d(in_channels//4),
+            #nn.BatchNorm2d(in_channels//4),
             nn.Flatten(),
             nn.Linear(
                 fc_in,

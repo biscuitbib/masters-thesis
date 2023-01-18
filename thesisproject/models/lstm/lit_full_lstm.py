@@ -7,7 +7,7 @@ from thesisproject.utils import (get_multiclass_metrics,
 from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-class LitFixedLSTM(pl.LightningModule):
+class LitFullLSTM(pl.LightningModule):
     def __init__(self, unet, encoder, lstm):
         super().__init__()
         self.unet = unet
@@ -25,21 +25,20 @@ class LitFixedLSTM(pl.LightningModule):
         """
         Batches are B x K x 1 x H x W
         """
-        inputs, labels, timedeltas = batch[0], batch[1], batch[2]
+        inputs, labels = batch[0], batch[1]
 
-        self.unet.eval()
-        self.encoder.eval()
         encoded_inputs = []
-        with torch.no_grad():
-            for series in inputs:
-                unet_series = self.unet(series)
-                encoding_series = self.encoder(unet_series)
-                encoded_inputs.append(encoding_series)
+        for series in inputs:
+            unet_series = self.unet(series)
+            encoding_series = self.encoder(unet_series)
+            encoded_inputs.append(encoding_series)
 
-        encoded_inputs = torch.stack(encoded_inputs, dim=0)
-        encoded_inputs_dt = torch.cat([timedeltas.unsqueeze(-1), encoded_inputs], dim=2)
+        encoded_inputs = torch.stack(encoded_inputs, dim=0).squeeze()
 
-        outputs = self.lstm(encoded_inputs_dt)
+        if encoded_inputs.ndim == 2:
+            encoded_inputs = encoded_inputs.unsqueeze(1)
+
+        outputs = self.lstm(encoded_inputs)
 
         loss = self.criterion(outputs, labels)
 
@@ -47,21 +46,20 @@ class LitFixedLSTM(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, _batch_idx):
-        inputs, labels, timedeltas = batch[0], batch[1], batch[2]
+        inputs, labels = batch[0], batch[1]
 
-        self.unet.eval()
-        self.encoder.eval()
         encoded_inputs = []
-        with torch.no_grad():
-            for series in inputs:
-                unet_series = self.unet(series)
-                encoding_series = self.encoder(unet_series)
-                encoded_inputs.append(encoding_series)
+        for series in inputs:
+            unet_series = self.unet(series)
+            encoding_series = self.encoder(unet_series)
+            encoded_inputs.append(encoding_series)
 
-        encoded_inputs = torch.stack(encoded_inputs, dim=0)
-        encoded_inputs_dt = torch.cat([timedeltas.unsqueeze(-1), encoded_inputs], dim=2)
+        encoded_inputs = torch.stack(encoded_inputs, dim=0).squeeze()
 
-        outputs = self.lstm(encoded_inputs_dt)
+        if encoded_inputs.ndim == 2:
+            encoded_inputs = encoded_inputs.unsqueeze(1)
+
+        outputs = self.lstm(encoded_inputs)
 
         loss = self.criterion(outputs, labels)
         # log metrics
@@ -77,7 +75,8 @@ class LitFixedLSTM(pl.LightningModule):
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr)
+        params = list(self.unet.parameters()) + list(self.encoder.parameters()) + list(self.lstm.parameters())
+        optimizer = optim.Adam(params, lr=self.lr)
         lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4)
         return {
             "optimizer": optimizer,
