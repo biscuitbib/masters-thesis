@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import Normalizer
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix, roc_curve, auc, RocCurveDisplay
 from tqdm import tqdm
 
 df0 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_0.csv")
@@ -80,4 +80,4 @@ AUC:         {auc_score:.4f}
 )
 
 RocCurveDisplay.from_predictions(y_test, y_pred)
-plt.save
+plt.savefig("feature_extract_lr_roc.png")
