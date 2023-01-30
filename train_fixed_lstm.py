@@ -14,21 +14,19 @@ subjects_csv = "/home/blg515/image_samples_edit.csv"
 lstm_data = LSTMDataModule(
     image_path,
     subjects_csv,
-    batch_size=12,
+    batch_size=8,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000
 )
 
 ## Models
-mpu_checkpoint = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9098/checkpoints/"
-mpu_checkpoint += os.listdir(mpu_checkpoint)[0]
-
-encoder_checkpoint = "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_2774/checkpoints/epoch=22-step=3841.ckpt"
+mpu_checkpoint = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9494/checkpoints/epoch=36-step=4625.ckpt"
+encoder_checkpoint = "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_411/checkpoints/epoch=44-step=5625.ckpt"
 
 unet = UNet(1, 9, 384)
 lit_mpu = LitMPU(unet).load_from_checkpoint(mpu_checkpoint, unet=unet)
 
-encoder = Encoder(1448, unet.fc_in, 200)
+encoder = Encoder(1448, unet.fc_in, 500)
 lit_encoder = LitEncoder(unet, encoder).load_from_checkpoint(encoder_checkpoint, unet=unet, encoder=encoder)
 
 lstm = LSTM(encoder.vector_size + 1, 1000, 2) #input size is vector size + 1 if adding dt
@@ -53,6 +51,7 @@ trainer = pl.Trainer(
     auto_lr_find=True,
     auto_scale_batch_size=False,
     enable_progress_bar=True,
+    accumulate_grad_batches=2,
     max_epochs=100
 )
 

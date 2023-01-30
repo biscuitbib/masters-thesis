@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import Normalizer, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, roc_curve, auc, RocCurveDisplay
 from tqdm import tqdm
@@ -14,6 +14,8 @@ df2 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_2.csv")
 df3 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_3.csv")
 
 subjects_df = pd.concat([df0, df1, df2, df3], ignore_index=True).sample(frac=1)
+
+print(f"{subjects_df.shape[0]} rows.")
 
 max_visits = subjects_df.groupby("subject_id_and_knee").size().max()
 
@@ -29,11 +31,12 @@ for subject_id_and_knee in tqdm(subject_id_and_knees):
     features = rows.loc[:, ~rows.columns.isin(["subject_id_and_knee", "TKR", "filename", "is_right"])]
     features["visit"] -= features["visit"].min()
     features = features.values # list of feature vectors
+    last_feature = features[-1]
     n_visits = features.shape[0]
     padding = np.zeros((max_visits - n_visits, features.shape[1]))
     features_padded = np.concatenate([features, padding], axis=None)
 
-    subjects.append(features_padded)
+    subjects.append(last_feature)
     labels.append(TKR)
 
 subjects = np.array(subjects)
@@ -48,7 +51,7 @@ Test data:     {np.mean(y_test)}
 """)
 
 # To normalize or not?
-normalizer = Normalizer().fit(X_train)
+normalizer = StandardScaler().fit(X_train)
 X_train_normalized = normalizer.transform(X_train)
 X_test_normalized = normalizer.transform(X_test)
 
@@ -79,5 +82,8 @@ AUC:         {auc_score:.4f}
 """
 )
 
-RocCurveDisplay.from_predictions(y_test, y_pred)
+RocCurveDisplay.from_predictions(y_test, y_pred, pos_label=1, name="Imaging Biomarker Linear Regression")
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+plt.plot([0, 1], [0, 1], linestyle="dashed", color="black", alpha=0.5, label="Random classifier")
 plt.savefig("feature_extract_lr_roc.png")

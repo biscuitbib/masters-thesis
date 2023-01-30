@@ -7,14 +7,15 @@ from thesisproject.models.mpu import LitMPU, UNet, SegmentationDataModule
 path = "/home/blg515/knee_data/"
 
 segmentation_data = SegmentationDataModule(
-    path, batch_size=8,
+    path,
+    batch_size=8,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000
 )
 
 
 # Model
-checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9098/checkpoints/epoch=38-step=6513.ckpt"
+checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9494/checkpoints/epoch=36-step=4625.ckpt"
 
 label_keys = [
     "Lateral femoral cart.",

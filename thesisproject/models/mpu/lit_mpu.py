@@ -50,16 +50,16 @@ class LitMPU(pl.LightningModule):
             self.logger.experiment.add_figure("images/val", overlay_fig, self.current_epoch)
 
         # log metrics
-        metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=False)
+        metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=True)
 
-        log_dice = {f"dice/{class_name}": dice for class_name, dice in zip(self.unet.class_names, metrics["dice"][1:])}
+        log_dice = {f"dice/{class_name}": dice for class_name, dice in zip(self.unet.class_names, metrics["dice"])}
         log_values = {
             "loss/val_loss": loss.detach(),
-            "val/accuracy": np.mean(metrics["accuracy"][1:]),
-            "val/precision": np.mean(metrics["precision"][1:]),
-            "val/recall": np.mean(metrics["recall"][1:]),
-            "val/specificity": np.mean(metrics["specificity"][1:]),
-            "val/dice": np.mean(metrics["dice"][1:]),
+            "val/accuracy": np.mean(metrics["accuracy"]),
+            "val/precision": np.mean(metrics["precision"]),
+            "val/recall": np.mean(metrics["recall"]),
+            "val/specificity": np.mean(metrics["specificity"]),
+            "val/dice": np.mean(metrics["dice"]),
             **log_dice
         }
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
@@ -72,8 +72,12 @@ class LitMPU(pl.LightningModule):
         with imagepair.loaded_in_context():
             image, label = imagepair.image.squeeze(0), imagepair.label
 
+            """
             image -= torch.min(image)
             image /= max(1, torch.max(image))
+            """
+            mean, std = torch.mean(image), torch.std(image)
+            image = (image - mean) / std
 
             # Softmax prediction
             prediction = self._predict_volume(image, class_index=False)
@@ -88,7 +92,7 @@ class LitMPU(pl.LightningModule):
             metrics = get_multiclass_metrics(
                 prediction.unsqueeze(0).detach().cpu(), # adding batch dim.
                 label.unsqueeze(0).unsqueeze(0).detach().cpu(), # adding batch and channel dim.
-                remove_bg=False
+                remove_bg=True
             )
 
             print(f"""
@@ -100,7 +104,7 @@ metrics:
             """)
 
             for metric_key, metric_values in metrics.items():
-                self.per_class_metrics[metric_key] += metric_values[1:]
+                self.per_class_metrics[metric_key] += metric_values
 
             self.num_test_samples += 1
 

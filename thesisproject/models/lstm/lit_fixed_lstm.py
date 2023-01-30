@@ -17,6 +17,7 @@ class LitFixedLSTM(pl.LightningModule):
 
         self.criterion = nn.CrossEntropyLoss()
         self.lr = 1e-4
+        self.weight_decay = 1e-6
 
     def forward(self, x):
         return self.lstm(x)
@@ -77,7 +78,7 @@ class LitFixedLSTM(pl.LightningModule):
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr)
+        optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4)
         return {
             "optimizer": optimizer,

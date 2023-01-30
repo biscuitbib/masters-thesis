@@ -68,8 +68,8 @@ class SliceSeriesLoader(IterableDataset):
             image_chunks = etorch.deform_grid(image_chunks, displacement, order=0, axis=deform_axis)
             image_slices = torch.stack(image_chunks, dim=0)
 
-        image_slices = torch.stack([image_slice - image_slice.min() for image_slice in image_slices], dim=0)
-        image_slices = torch.stack([image_slice / image_slice.max() if image_slice.max() > 0 else image_slice for image_slice in image_slices], dim=0)
+        image_slices = torch.stack([(image_slice - torch.mean(image_slice)) / torch.std(image_slice)  for image_slice in image_slices], dim=0)
+        #image_slices = torch.stack([image_slice / image_slice.max() if image_slice.max() > 0 else image_slice for image_slice in image_slices], dim=0)
         #image_slices -= torch.min(image_slices, dim=0).values
         #image_slices /= torch.max(image_slices, dim=0).values
 

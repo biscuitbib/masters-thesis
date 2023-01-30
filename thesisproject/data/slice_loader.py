@@ -65,8 +65,13 @@ class SliceLoader(IterableDataset):
             displacement = torch.tensor(displacement_val)
             [image_slice, label_slice] = etorch.deform_grid([image_slice, label_slice], displacement, order=0, axis=[(1, 2), (1, 2)])
 
-        image_slice -= image_slice.min()
-        image_slice /= image_slice.max()
+        """
+        TODO use standardization instead of normalization
+        """
+        #image_slice -= image_slice.min()
+        #image_slice /= image_slice.max()
+        mean, std = torch.mean(image_slice), torch.std(image_slice)
+        image_slice = (image_slice - mean) / std
 
         label_slice = label_slice.squeeze(0) # remove channel dim
 

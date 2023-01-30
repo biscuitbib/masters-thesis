@@ -73,7 +73,7 @@ label_keys = ["Lateral femoral cart.",
 unet = UNet(1, 9, 384, class_names=label_keys)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9098/checkpoints/epoch=38-step=6513.ckpt"
+checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9494/checkpoints/epoch=36-step=4625.ckpt"
 print(f"Trying to load from checkpoint:\n{checkpoint_path}")
 
 litunet: LitMPU = LitMPU.load_from_checkpoint(checkpoint_path, unet=unet)
@@ -114,9 +114,12 @@ with torch.no_grad():
             scan = np.flip(scan, axis=2).copy()
 
         scan_tensor = volume_transform(torch.from_numpy(scan).float())
-
+        """
         scan_tensor -= scan_tensor.min()
         scan_tensor /= max(1, scan_tensor.max())
+        """
+        mean, std = torch.mean(scan_tensor), torch.std(scan_tensor)
+        scan_tensor = (scan_tensor - mean) / std
         scan_tensor = scan_tensor.to(device)
 
         #TODO fix misuse of prediction for lightning module

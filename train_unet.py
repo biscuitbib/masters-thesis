@@ -9,7 +9,7 @@ path = "../knee_data/"
 
 segmentation_data = SegmentationDataModule(
     path,
-    batch_size=12,
+    batch_size=8,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000
 )
@@ -32,7 +32,7 @@ model = LitMPU(unet)
 checkpoint_path = None#"/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_6438/checkpoints/epoch=33-step=5678.ckpt"
 
 # Callbacks
-early_stopping = EarlyStopping("val/dice", mode="max", min_delta=0.0, patience=6)
+early_stopping = EarlyStopping("val/dice", mode="max", min_delta=0.0, patience=15)
 lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
 num_gpus = torch.cuda.device_count()
@@ -47,7 +47,8 @@ trainer = pl.Trainer(
     auto_lr_find=False,
     auto_scale_batch_size=False,
     enable_progress_bar=True,
-    max_epochs=50
+    max_epochs=100,
+    accumulate_grad_batches=2
 )
 
 #trainer.tune(model, datamodule=segmentation_data)

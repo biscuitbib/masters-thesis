@@ -26,37 +26,27 @@ def get_multiclass_metrics(pred, target, remove_bg=False):
     pred_flat = torch.flatten(pred_class_indices).numpy()
     target_flat = torch.flatten(target).numpy()
 
-    cm = confusion_matrix(pred_flat, target_flat, labels=np.arange(n_classes))
-    if remove_bg:
-        cm = cm[1:, 1:]
+    cm = confusion_matrix(target_flat, pred_flat, labels=np.arange(n_classes))
 
-    metrics = {
-        "accuracy": np.zeros(n_classes - offset),
-        "precision": np.zeros(n_classes - offset),
-        "recall": np.zeros(n_classes - offset),
-        "specificity": np.zeros(n_classes - offset),
-        "dice": np.zeros(n_classes - offset),
-    }
+    eps = 1e-8
 
-    sum_cm = np.sum(cm)
-    eps = 1e-6
-    for c in range(n_classes - offset):
-        tp = cm[c, c]
-        fp = np.sum(cm[:, c]) - tp
-        fn = np.sum(cm[c, :]) - tp
-        tn = sum_cm - tp - fp - fn
+    fp = np.sum(cm, axis=0) - np.diag(cm)
+    fn = np.sum(cm, axis=1) - np.diag(cm)
+    tp = np.diag(cm)
+    tn = np.sum(cm) - (fp + fn + tp)
 
-        accuracy = (tp + tn) / (tn + fp + fn + tp + eps)
-        precision = tp / (tp + fp + eps)
-        recall = tp / (tp + fn + eps)
-        specificity = tn / (tn + fp + eps)
-        dice = (2 * tp) / (2 * tp + fp + fn + eps)
+    accuracy = (tp + tn) / (tn + fp + fn + tp + eps)
+    precision = tp / (tp + fp + eps)
+    recall = tp / (tp + fn + eps)
+    specificity = tn / (tn + fp + eps)
+    dice = (2 * tp) / (2 * tp + fp + fn + eps)
 
-        metrics["accuracy"][c] = accuracy
-        metrics["precision"][c] = precision
-        metrics["recall"][c] = recall
-        metrics["specificity"][c] = specificity
-        metrics["dice"][c] = dice
+    metrics = {}
+    metrics["accuracy"] = accuracy[offset:]
+    metrics["precision"] = precision[offset:]
+    metrics["recall"] = recall[offset:]
+    metrics["specificity"] = specificity[offset:]
+    metrics["dice"] = dice[offset:]
 
     return metrics
 
