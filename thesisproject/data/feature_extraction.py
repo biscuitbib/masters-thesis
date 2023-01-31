@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from skimage.measure import shannon_entropy
 from scipy.io import loadmat
-from scipy.ndimage.morphology import binary_dilation, binary_erosion
+from scipy.ndimage import binary_dilation, binary_erosion
 
 def get_class_mask(mask, c):
     return (mask == c).astype(int)
@@ -84,7 +84,7 @@ def extract_features(image, mask):
     lt_wmin, lt_wmax, lt_dmin, lt_dmax = 0, w - 1, 0, d - 1
     if np.any(lateral_tibial):
         lt_wmin, lt_wmax, lt_dmin, lt_dmax = bbox(lateral_tibial)
-        
+
     mt_wmin, mt_wmax, mt_dmin, mt_dmax = 0, w - 1, 0, d - 1
     if np.any(medial_tibial):
         mt_wmin, mt_wmax, mt_dmin, mt_dmax = bbox(medial_tibial)
@@ -100,7 +100,7 @@ def extract_features(image, mask):
     # Fails if not any femoral classes
     if np.any(femoral_crop):
         BelowCenter(femoral_crop)
-        
+
     lateral_femoral = np.zeros_like(femoral)
     lateral_femoral[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1] = femoral_crop[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1]
 
@@ -135,3 +135,14 @@ def extract_features(image, mask):
     }
 
     return results
+
+
+if __name__ == "__main__":
+    image = np.ones((10, 10, 10))
+    mask = np.zeros((10, 10, 10))
+    for i in range(9):
+        mask[:, :, i] = i
+
+    features = extract_features(image, mask)
+    for key, val in features.items():
+        print(f"{key}: {val}")

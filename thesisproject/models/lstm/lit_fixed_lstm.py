@@ -16,8 +16,8 @@ class LitFixedLSTM(pl.LightningModule):
         self.lstm = lstm
 
         self.criterion = nn.CrossEntropyLoss()
-        self.lr = 1e-4
-        self.weight_decay = 1e-6
+        self.lr = 1e-3
+        self.weight_decay = 0
 
     def forward(self, x):
         return self.lstm(x)
