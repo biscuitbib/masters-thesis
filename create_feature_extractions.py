@@ -2,6 +2,7 @@ import os
 import sys
 
 from queue import Queue
+import re
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -21,7 +22,7 @@ if len(args) == 2:
 
 image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
 
-subjects_df = pd.read_csv("/home/blg515/image_samples_edit.csv")
+subjects_df = pd.read_csv("/home/blg515/image_samples.csv")
 image_files = subjects_df["filename"].values #np.loadtxt("/home/blg515/masters-thesis/subject_images.txt", dtype="str")
 
 assert os.path.exists(image_path)
@@ -64,7 +65,7 @@ volume_transform = Square_pad()
 label_keys = ["Lateral femoral cart.",
               "Lateral meniscus",
               "Lateral tibial cart.",
-              "Medial femoral cartilage",
+              "Medial femoral cart.",
               "Medial meniscus",
               "Medial tibial cart.",
               "Patellar cart.",
@@ -80,27 +81,34 @@ litunet: LitMPU = LitMPU.load_from_checkpoint(checkpoint_path, unet=unet)
 litunet.eval()
 litunet.to(device)
 
+regex = re.compile("feature_extract(_\d+)?\.csv")
+csv_files = [file for file in os.listdir("/home/blg515/masters-thesis") if regex.match(file)]
 computed_files = []
-if os.path.exists("feature_extract.csv"):
-    df = pd.read_csv("feature_extract.csv")
+for file in csv_files:
+    df = pd.read_csv(file)
     for _, row in df.iterrows():
         computed_files.append(row["filename"])
+
+if os.path.exists(f"feature_extract_{i}.csv")
+    df = pd.read_csv(f"feature_extract_{i}.csv")
 else:
     df = pd.DataFrame()
 
 files_to_compute = list(set(image_files) - set(computed_files))
+
+print(f"Creating imaging biomarkers for {len(files_to_compute)} out of {len(image_files)}.")
 
 image_q = Queue()
 [image_q.put((filename, nib.load(image_path + filename))) for filename in files_to_compute]
 
 pbar = tqdm(total=len(image_files))
 pbar.update(len(computed_files))
+
+failed_files = []
 with torch.no_grad():
     #for filename in tqdm(files_to_compute):
     while not image_q.empty():
         filename, nii_file = image_q.get()
-        #pbar.set_description(f"{filename} (load)")
-        #nii_file = nib.load(f"{image_path}{filename}")
 
         pbar.set_description(f"{filename}")
         subject_id, is_right, visit = filename_to_subject_info(filename)
@@ -114,33 +122,27 @@ with torch.no_grad():
             scan = np.flip(scan, axis=2).copy()
 
         scan_tensor = volume_transform(torch.from_numpy(scan).float())
-        """
-        scan_tensor -= scan_tensor.min()
-        scan_tensor /= max(1, scan_tensor.max())
-        """
+
         mean, std = torch.mean(scan_tensor), torch.std(scan_tensor)
+
         scan_tensor = (scan_tensor - mean) / std
         scan_tensor = scan_tensor.to(device)
 
         #TODO fix misuse of prediction for lightning module
-        start = time()
         prediction = litunet.predict_step(scan_tensor)
-        end = time()
 
-        pbar.set_description(f"{filename} (pred: {round(end - start, 4)}s)")
-
-        start = time()
         try:
             extracted_features = extract_features(scan_tensor.detach().cpu().numpy(), prediction.detach().cpu().numpy())
         except KeyboardInterrupt:
-            print("Shutting down.")
+            print("Shutting down...")
+            if len(failed_files) > 0:
+                print(f"Failed to create imaging biomarkers for the following {len(failed_files)} files.")
+                for file in failed_files:
+                    print(file)
             exit()
         except:
-            print(f"Failed feature extraction for image: {filename}")
+            failed_files.append(filename)
             continue
-        end = time()
-
-        pbar.set_description(f"{filename} (extract: {round(end - start, 4)}s)")
 
         subject_id_and_knee =  str(subject_id) + ("-R" if is_right else "-L")
         subject_row = subjects_df[subjects_df["filename"] == filename].head(1)
@@ -159,3 +161,8 @@ with torch.no_grad():
         else:
             df.to_csv(f"feature_extract.csv", index=False)
         pbar.update(1)
+
+if len(failed_files) > 0:
+    print(f"Failed to create imaging biomarkers for the following {len(failed_files)} files.")
+    for file in failed_files:
+        print(file)

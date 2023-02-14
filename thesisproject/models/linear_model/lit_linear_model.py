@@ -7,26 +7,24 @@ from thesisproject.utils import (get_multiclass_metrics,
 from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-class LitFixedLSTM(pl.LightningModule):
-    def __init__(self, unet, encoder, lstm):
+class LitLinearModel(pl.LightningModule):
+    def __init__(self, unet, encoder, lr):
         super().__init__()
         self.unet = unet
         self.unet.encode = True
         self.encoder = encoder
-        self.lstm = lstm
+        self.lr = lr
 
         self.criterion = nn.CrossEntropyLoss()
-        self.lr = 1e-4
+        self.lr = 1e-3
         self.weight_decay = 0
-
-    def forward(self, x):
-        return self.lstm(x)
 
     def training_step(self, batch, _batch_idx):
         """
         Batches are B x K x 1 x H x W
+        Same as LSTM
         """
-        inputs, labels, timedeltas = batch[0], batch[1], batch[2]
+        inputs, labels, _timedeltas = batch[0], batch[1], batch[2]
 
         self.unet.eval()
         self.encoder.eval()
@@ -38,9 +36,10 @@ class LitFixedLSTM(pl.LightningModule):
                 encoded_inputs.append(encoding_series)
 
         encoded_inputs = torch.stack(encoded_inputs, dim=0)
-        encoded_inputs_dt = torch.cat([timedeltas.unsqueeze(-1), encoded_inputs], dim=2)
 
-        outputs = self.lstm(encoded_inputs_dt)
+        raise NotImplementedError("TODO: How to create stacked inputs to linear model?")
+
+        outputs = self.lr(encoded_inputs_dt)
 
         loss = self.criterion(outputs, labels)
 
@@ -48,7 +47,7 @@ class LitFixedLSTM(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, _batch_idx):
-        inputs, labels, timedeltas = batch[0], batch[1], batch[2]
+        inputs, labels, _timedeltas = batch[0], batch[1], batch[2]
 
         self.unet.eval()
         self.encoder.eval()
@@ -60,7 +59,8 @@ class LitFixedLSTM(pl.LightningModule):
                 encoded_inputs.append(encoding_series)
 
         encoded_inputs = torch.stack(encoded_inputs, dim=0)
-        encoded_inputs_dt = torch.cat([timedeltas.unsqueeze(-1), encoded_inputs], dim=2)
+
+        raise NotImplementedError("TODO: How to create stacked inputs to linear model?")
 
         outputs = self.lstm(encoded_inputs_dt)
 
@@ -79,7 +79,7 @@ class LitFixedLSTM(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
+        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

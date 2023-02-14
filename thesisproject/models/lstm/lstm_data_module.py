@@ -45,7 +45,9 @@ class LSTMDataModule(pl.LightningDataModule):
         train_slices_per_epoch: int=2000,
         val_slices_per_epoch: int=1000,
         test_slices_per_epoch: int=1000,
-        train_val_test_ratios = [0.6, 0.2, 0.2]
+        train_indices=None,
+        val_indices=None,
+        test_indices=None
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -61,8 +63,9 @@ class LSTMDataModule(pl.LightningDataModule):
         self.test_slices_per_epoch = test_slices_per_epoch
         self.num_workers = min(4, os.cpu_count())
 
-        assert len(train_val_test_ratios) == 3 and sum(train_val_test_ratios) == 1
-        self.train_ratio, self.val_ratio, self.test_ratio = train_val_test_ratios
+        self.train_indices = train_indices
+        self.val_indices = val_indices
+        self.test_indices = test_indices
 
     def collate_fn(self, batch):
         """
@@ -81,9 +84,13 @@ class LSTMDataModule(pl.LightningDataModule):
         return [input_list, target_list, timedeltas_list]
 
     def setup(self, stage: str):
-
-        total_train_df, test_df = train_test_split(self.subjects_df, test_size=self.test_ratio)
-        train_df, val_df = train_test_split(total_train_df, test_size=self.val_ratio)
+        if self.train_indices is None or self.val_indices is None or self.test_indices is None:
+            total_train_df, test_df = train_test_split(self.subjects_df, test_size=0.2)
+            train_df, val_df = train_test_split(total_train_df, test_size=0.2)
+        else:
+            train_df = self.subjects_df[self.subjects_df["subject_id_and_knee"].isin(self.train_indices)]
+            val_df = self.subjects_df[self.subjects_df["subject_id_and_knee"].isin(self.val_indices)]
+            test_df = self.subjects_df[self.subjects_df["subject_id_and_knee"].isin(self.test_indices)]
 
         # train data
         train_dataset = ImageSeriesDataset(self.data_dir, train_df, image_transform=SquarePad())

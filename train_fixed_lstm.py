@@ -1,7 +1,10 @@
 import os
+
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
+from sklearn.model_selection import train_test_split
 
 from thesisproject.models.mpu import UNet, LitMPU
 from thesisproject.models.encoder import Encoder, LitEncoder
@@ -9,19 +12,25 @@ from thesisproject.models.lstm import LSTMDataModule, LSTM, LitFixedLSTM
 
 # Data
 image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
-subjects_csv = "/home/blg515/image_samples_edit.csv"
+subjects_csv = "/home/blg515/image_samples.csv"
+
+train_indices = np.load("/home/blg515/train_ids.npy", allow_pickle=True).astype(str)
+train_indices, val_indices = train_test_split(train_indices, test_size=0.5)
 
 lstm_data = LSTMDataModule(
     image_path,
     subjects_csv,
     batch_size=8,
-    train_slices_per_epoch=2000,
-    val_slices_per_epoch=1000
+    train_slices_per_epoch=1000,
+    val_slices_per_epoch=500,
+    train_indices=train_indices,
+    val_indices=val_indices,
+    test_indices=val_indices
 )
 
 ## Models
 mpu_checkpoint = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9494/checkpoints/epoch=36-step=4625.ckpt"
-encoder_checkpoint = "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_411/checkpoints/epoch=44-step=5625.ckpt"
+encoder_checkpoint = "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_3040/checkpoints/epoch=53-step=3402.ckpt"
 
 unet = UNet(1, 9, 384)
 lit_mpu = LitMPU(unet).load_from_checkpoint(mpu_checkpoint, unet=unet)

@@ -72,13 +72,25 @@ def class_features(image, mask, name):
     return results
 
 def extract_features(image, mask):
+    """
+    0: Background
+    1: LateralFemoralCartilage
+    2: LateralMeniscus
+    3: LateralTibialCartilage
+    4: MedialFemoralCartilage
+    5: MedialMeniscus
+    6: MedialTibialCartilage
+    7: PatellarCartilage
+    8: Tibia
+    """
+
     h, w, d = image.shape
     # Compartments
-    lateral_tibial = get_class_mask(mask, 4)
-    medial_tibial = get_class_mask(mask, 7)
-    femoral = get_class_mask(mask, 2) + get_class_mask(mask, 5)
-    lateral_meniscus = get_class_mask(mask, 3)
-    medial_meniscus = get_class_mask(mask, 6)
+    lateral_tibial = get_class_mask(mask, 3)
+    medial_tibial = get_class_mask(mask, 6)
+    femoral = get_class_mask(mask, 1) + get_class_mask(mask, 4)
+    lateral_meniscus = get_class_mask(mask, 2)
+    medial_meniscus = get_class_mask(mask, 5)
 
     # Crop femoral cartilage to tibial cartilage bounding box, if any tibial cartilage found.
     lt_wmin, lt_wmax, lt_dmin, lt_dmax = 0, w - 1, 0, d - 1
@@ -90,8 +102,6 @@ def extract_features(image, mask):
         mt_wmin, mt_wmax, mt_dmin, mt_dmax = bbox(medial_tibial)
 
     femoral_crop = np.zeros_like(femoral)
-    femoral_lt_bbox = femoral[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1]
-    femoral_mt_bbox = femoral[:, mt_wmin:mt_wmax + 1, mt_dmin:mt_dmax + 1]
     femoral_crop[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1] = femoral[:, lt_wmin:lt_wmax + 1, lt_dmin:lt_dmax + 1]
     femoral_crop[:, mt_wmin:mt_wmax + 1, mt_dmin:mt_dmax + 1] = femoral[:, mt_wmin:mt_wmax + 1, mt_dmin:mt_dmax + 1]
 

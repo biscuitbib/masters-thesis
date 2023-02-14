@@ -113,24 +113,41 @@ dataset_df = pd.DataFrame(columns=new_cols)
 potential_matches_df = non_TKR_df.copy()
 exclude_TKR_indices = []
 
+# "9671958-Right-V03.nii.gz"
+image_filenames = set(os.listdir("/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY"))
+image_subject_id_and_knees = set([file[:9] for file in image_filenames])
+
+potential_matches_df = potential_matches_df[potential_matches_df["subject_id_and_knee"].isin(image_subject_id_and_knees)]
+
 for i, p in TKR_df.iterrows():
     age = p["age"]
     bmi = p["BMI"]
 
     age_match_df = potential_matches_df[potential_matches_df["age"].between(age - 4, age + 4, inclusive="both")]
     bmi_match_df = age_match_df[age_match_df["BMI"].between(bmi - 2, bmi + 2, inclusive="both")]
+    match_df = bmi_match_df
 
-    n = min(bmi_match_df.shape[0], 2)
+    n = min(match_df.shape[0], 2)
     if n == 0:
-        exclude_TKR_indices.append(i)
-        continue
+        match_df = age_match_df
+        n = min(match_df.shape[0], 2)
+        if n == 0:
+            exclude_TKR_indices.append(i)
+            continue
 
-    matches = bmi_match_df.sample(n=n)
+    matches = match_df.sample(n=n)
     potential_matches_df.drop(matches.index.values, inplace=True)
 
     dataset_df = pd.concat([dataset_df, matches], axis=0)
 
+print(f"Excluded {len(exclude_TKR_indices)} TKR sample.")
+
 dataset_df = pd.concat([dataset_df, TKR_df.drop(exclude_TKR_indices)], axis=0)
+
+n_positive = dataset_df[dataset_df["TKR"] == 1].shape[0]
+n_negative = dataset_df[dataset_df["TKR"] == 0].shape[0]
+
+print(n_positive, n_negative)
 
 # save samples
 dataset_df.to_csv("subjects.csv", index=False)
@@ -138,44 +155,42 @@ dataset_df.to_csv("subjects.csv", index=False)
 """
 Get images from subjects
 """
-image_filenames = set(os.listdir("/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"))
-image_files = []
+#image_filenames = set(np.loadtxt("image_filenames.txt", dtype="str"))
 image_df = None
+subject_id_and_knees = dataset_df["subject_id_and_knee"].unique()
 
-for subject_idx, subject_info in dataset_df.iterrows():
-    last_visit_right = 12
-    last_visit_left = 12
+def filenames_from_subject_id_and_knee(subject_id_and_knee, files):
+    subject_files = [file for file in files if file[:9] == subject_id_and_knee]
+    return subject_files
 
-    subject_id = subject_info["subject_id_and_knee"][:-2]
+no_images = []
 
-    if subject_info["TKR"] and subject_info["is_right"]:
-        last_visit_right = subject_info["last_visit_before_tkr"]
+for subject_id_and_knee in subject_id_and_knees:
+    tkr = dataset_df[dataset_df["subject_id_and_knee"] == subject_id_and_knee]["TKR"].iloc[0]
+    is_right = subject_id_and_knee[:-1] == "R"
+    subject_filenames = filenames_from_subject_id_and_knee(subject_id_and_knee, image_filenames)
+    if len(subject_filenames) == 0:
+        no_images.append(subject_id_and_knee)
 
-    if subject_info["TKR"] and not subject_info["is_right"]:
-        last_visit_left = subject_info["last_visit_before_tkr"]
-
-    right, left = get_patient_images_from_id(image_filenames, subject_id, last_visit_right=last_visit_right, last_visit_left=last_visit_left)
-
-    file_set = right if subject_info["is_right"] else left
-    for file in file_set:
-        is_right = file[8] == "R"
-        visit = int(file[15:17]) if is_right else int(file[14:16])
-        df = pd.DataFrame({
-            "filename": [file],
-            "TKR": [subject_info["TKR"]],
-            "is_right": [is_right],
-            "subject_id_and_knee": [subject_info["subject_id_and_knee"]],
-            "visit": [visit]
+    dicts = []
+    for filename in subject_filenames:
+        visit = int(filename[-9:-7])
+        dicts.append({
+            "filename": filename,
+            "TKR": tkr,
+            "visit": visit,
+            "subject_id_and_knee": subject_id_and_knee,
+            "is_right": is_right
         })
-        if image_df is None:
-            image_df = df
-        else:
-            image_df = pd.concat([image_df, df], axis=0)
+    df = pd.DataFrame.from_dict(dicts)
+    image_df = pd.concat([image_df, df], axis=0)
 
-    image_files += right + left
+
+print(f"{len(no_images)} had no images")
 
 image_df.to_csv("image_samples.csv", index=False)
 
+image_files = image_df["filename"].unique()
 print(f"Found {len(image_files)} images")
 with open("subject_images.txt", "w") as f:
     for file in image_files:

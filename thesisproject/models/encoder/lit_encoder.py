@@ -27,7 +27,7 @@ class LitEncoder(pl.LightningModule):
 
         self.criterion = nn.CrossEntropyLoss()
         self.lr = 1e-4
-        self.weight_decay = 1e-3
+        self.weight_decay = 0 #1e-6
 
     def forward(self, x):
         x = self.unet(x)
@@ -43,8 +43,6 @@ class LitEncoder(pl.LightningModule):
 
         encodings = self.encoder(unet_bottleneck)
         outputs = self.fc(encodings)
-
-        print(f"pred vs label: {torch.argmax(outputs, dim=1)} {labels}")
 
         loss = self.criterion(outputs, labels)
 
@@ -105,7 +103,7 @@ class LitEncoder(pl.LightningModule):
     def configure_optimizers(self):
         params = list(self.encoder.parameters()) + list(self.fc.parameters())
         optimizer = optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)
-        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2)
+        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

@@ -42,7 +42,8 @@ class EncoderDataModule(pl.LightningDataModule):
         train_slices_per_epoch: int=2000,
         val_slices_per_epoch: int=1000,
         test_slices_per_epoch: int=1000,
-        train_val_ratio = [0.8, 0.2]
+        train_indices=None,
+        val_indices=None
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -53,21 +54,19 @@ class EncoderDataModule(pl.LightningDataModule):
         self.test_slices_per_epoch = test_slices_per_epoch
         self.num_workers = min(4, os.cpu_count())
 
-        assert len(train_val_ratio) == 2 and sum(train_val_ratio) <= 1
-        self.train_ratio, self.val_ratio = train_val_ratio
+        self.train_indices = train_indices
+        self.val_indices = val_indices
 
         self.collate_fn = None
-
-    """
-    def collate_fn(self, data):
-        data = [(input.squeeze(0), target) for input, target in data]
-        return data
-    """
 
     def setup(self, stage: str):
         subjects_df = pd.read_csv(self.subjects_csv).sample(frac=1)
 
-        train_df, val_df = train_test_split(subjects_df, test_size=self.val_ratio)
+        if self.train_indices is None or self.val_indices is None:
+            train_df, val_df = train_test_split(subjects_df, test_size=0.2)
+        else:
+            train_df = subjects_df[subjects_df["subject_id_and_knee"].isin(self.train_indices)]
+            val_df = subjects_df[subjects_df["subject_id_and_knee"].isin(self.val_indices)]
 
         train_dataset = ImageTKRDataset(self.data_dir, train_df, image_transform=SquarePad())
 

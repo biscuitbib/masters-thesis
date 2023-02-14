@@ -1,22 +1,28 @@
 import os
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
+from sklearn.model_selection import train_test_split
 from thesisproject.models.mpu import LitMPU, UNet
 from thesisproject.models.encoder import Encoder, LitEncoder, EncoderDataModule
 
 # Data
 image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
-subjects_csv = "/home/blg515/image_samples_edit.csv"
+subjects_csv = "/home/blg515/image_samples.csv"
+
+train_indices = np.load("/home/blg515/train_ids.npy", allow_pickle=True).astype(str)
+train_indices, val_indices = train_test_split(train_indices, test_size=0.5, shuffle=True)
 
 encoder_data = EncoderDataModule(
     image_path,
     subjects_csv,
     batch_size=8,
-    train_slices_per_epoch=2000,
-    val_slices_per_epoch=1000,
-    train_val_ratio=[0.75, 0.25]
+    train_slices_per_epoch=1000,
+    val_slices_per_epoch=500,
+    train_indices=train_indices,
+    val_indices=val_indices
 )
 
 ## Model
