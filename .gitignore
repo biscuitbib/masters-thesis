@@ -137,3 +137,7 @@ pet_data/
 *.mat
 predictions/
 *.nii.gz
+*.npy
+*.csv
+*.png
+*.pickle

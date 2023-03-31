@@ -3,7 +3,7 @@ from queue import Empty, Queue
 from contextlib import contextmanager
 from time import sleep
 
-from thesisproject.data.loading_pool import LoadingPool
+from .loading_pool import LoadingPool
 
 class ImageQueue():
     def __init__(self, dataset, queue_length=16, max_access=50):

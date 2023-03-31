@@ -32,11 +32,12 @@ def grayscale_to_rgb(image):
 def create_overlay_figure(inputs, labels, outputs, images_per_batch=4):
     images_per_batch = min(inputs.shape[0], images_per_batch)
     input_imgs = inputs.detach().cpu()
+    input_imgs -= torch.min(input_imgs)
     input_imgs /= torch.max(input_imgs)
     input_imgs = grayscale_to_rgb(input_imgs)
-    
+
     b, h, w, c = input_imgs.shape
-    
+
     pred_imgs = segmentation_to_rgb(outputs.detach().cpu())
     pred_overlay = (input_imgs / 2) + (pred_imgs / 2)
     pred_overlay = torch.cat([pred_overlay[i, ...] for i in range(pred_overlay.shape[0])], dim=1).numpy()
@@ -44,20 +45,20 @@ def create_overlay_figure(inputs, labels, outputs, images_per_batch=4):
     target_imgs = mask_to_rgb(labels.detach().cpu())
     target_overlay = (input_imgs / 2) + (target_imgs / 2)
     target_overlay = torch.cat([target_overlay[i, ...] for i in range(target_overlay.shape[0])], dim=1).numpy()
-    
+
     fig, (ax_gt, ax_pred) = plt.subplots(2, 1, figsize=(20, 20))
     ax_gt.imshow(target_overlay[:, :w * images_per_batch, ...])
     ax_gt.set_title("Ground truth")
     ax_gt.set_xticks([])
     ax_gt.set_yticks([])
-    
+
     ax_pred.imshow(pred_overlay[:, :w * images_per_batch, ...])
     ax_pred.set_title("Prediction")
     ax_pred.set_xticks([])
     ax_pred.set_yticks([])
-    
+
     fig.tight_layout()
-    
+
     return fig, [ax_gt, ax_pred]
 
 def create_confusion_matrix_figure(cm, class_names=None):
@@ -67,17 +68,17 @@ def create_confusion_matrix_figure(cm, class_names=None):
     tick_marks = np.arange(len(class_names))
     ax.set_xticks(tick_marks, class_names, rotation=45)
     ax.set_yticks(tick_marks, class_names, rotation=45)
-    
+
     # Normalize the confusion matrix.
     cm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
-    
+
     # Use white text if squares are dark; otherwise black.
     threshold = cm.max() / 2.
-    
+
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         color = "white" if cm[i, j] > threshold else "black"
         plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
-        
+
     fig.tight_layout()
     ax.set_ylabel('True label')
     ax.set_xlabel('Predicted label')
@@ -90,7 +91,7 @@ def create_animation(image, label, dim=0):
     image /= np.max(image)
     image *= 255
     image_rgb = np.repeat(image, 3, axis=-1).astype(np.uint8)
-    
+
     label_rgb = np.zeros((*label.shape, 3), dtype=np.uint8)
 
     for gray, rgb in enumerate(colors):
@@ -121,19 +122,19 @@ def create_animation(image, label, dim=0):
     ani = animation.ArtistAnimation(fig, frames, interval=50, blit=True, repeat_delay=1000)
 
     ani.save(f"dim_{dim}.mp4")
-    
+
 if __name__ == "__main__":
     import nibabel as nib
     import os
-    
+
     filename = "9625955_20040810_SAG_3D_DESS_RIGHT_016610679011.nii.gz"
-    
+
     img_path = "../../../knee_data/test/images/" + filename
     label_path = "../../predictions/" + filename
-    
+
     image = nib.load(img_path).get_fdata()
     label = nib.load(label_path).get_fdata()
-    
+
     label_keys = ["LateralFemoralCartilage",
                       "LateralMeniscus",
                       "LateralTibialCartilage",
@@ -142,22 +143,22 @@ if __name__ == "__main__":
                       "MedialTibialCartilage",
                       "PatellarCartilage",
                       "Tibia"]
-    
+
     fig, axs = plt.subplots(colors.shape[0]- 1, 1)
-    
+
     for i, color in enumerate(colors):
         if i == 0:
             continue
         color_img = np.zeros((10, 10, 3), dtype=np.uint8)
         color_img[:, :] = color
-        
+
         axs[i - 1].imshow(color_img)
         axs[i - 1].set_title(label_keys[i-1])
         axs[i - 1].set_xticks([])
         axs[i - 1].set_yticks([])
-        
-    
-    plt.tight_layout()    
+
+
+    plt.tight_layout()
     plt.savefig("labels.jpg")
-    
+
     create_animation(image, label, dim=1)
