@@ -2,22 +2,25 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch.nn.utils.rnn import pad_sequence
+from torch.nn.functional import softmax
 from thesisproject.utils import (get_multiclass_metrics,
                                  save_metrics_csv)
 from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-class LitLinearModel(pl.LightningModule):
-    def __init__(self, unet, encoder, lr):
+class LitFixedLinearModel(pl.LightningModule):
+    def __init__(self, unet, encoder, linear, n_visits=1, lr=1e-5, weight_decay=1e-5):
         super().__init__()
         self.unet = unet
         self.unet.encode = True
         self.encoder = encoder
-        self.lr = lr
+        self.linear = linear
+
+        self.n_visits = n_visits
 
         self.criterion = nn.CrossEntropyLoss()
-        self.lr = 1e-3
-        self.weight_decay = 0
+        self.lr = lr
+        self.weight_decay = weight_decay
 
     def training_step(self, batch, _batch_idx):
         """
@@ -33,13 +36,11 @@ class LitLinearModel(pl.LightningModule):
             for series in inputs:
                 unet_series = self.unet(series)
                 encoding_series = self.encoder(unet_series)
-                encoded_inputs.append(encoding_series)
+                encoded_inputs.append(encoding_series.squeeze())
 
-        encoded_inputs = torch.stack(encoded_inputs, dim=0)
+        encoded_stacks = torch.stack([series.reshape(-1) for series in encoded_inputs])
 
-        raise NotImplementedError("TODO: How to create stacked inputs to linear model?")
-
-        outputs = self.lr(encoded_inputs_dt)
+        outputs = self.linear(encoded_stacks)
 
         loss = self.criterion(outputs, labels)
 
@@ -56,13 +57,11 @@ class LitLinearModel(pl.LightningModule):
             for series in inputs:
                 unet_series = self.unet(series)
                 encoding_series = self.encoder(unet_series)
-                encoded_inputs.append(encoding_series)
+                encoded_inputs.append(encoding_series.squeeze())
 
-        encoded_inputs = torch.stack(encoded_inputs, dim=0)
+        encoded_stacks = torch.stack([series.reshape(-1) for series in encoded_inputs])
 
-        raise NotImplementedError("TODO: How to create stacked inputs to linear model?")
-
-        outputs = self.lstm(encoded_inputs_dt)
+        outputs = self.linear(encoded_stacks)
 
         loss = self.criterion(outputs, labels)
         # log metrics
@@ -77,14 +76,31 @@ class LitLinearModel(pl.LightningModule):
         }
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
 
+    def predict(self, inputs):
+        inputs = inputs[0]
+        self.unet.eval()
+        self.encoder.eval()
+        self.linear.eval()
+        encoded_inputs = []
+        with torch.no_grad():
+            for series in inputs:
+                unet_series = self.unet(series)
+                encoding_series = self.encoder(unet_series)
+                encoded_inputs.append(encoding_series)
+
+            encoded_stacks = torch.stack([series.reshape(-1) for series in encoded_inputs])
+
+            outputs = self.linear(encoded_stacks)
+            return softmax(outputs, dim=1)
+
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4)
+        optimizer = optim.Adam(self.linear.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.9, patience=2)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": lr_scheduler,
-                "monitor": "loss/val_loss",
+                "monitor": "loss/train",
                 "frequency": 1
             },
         }

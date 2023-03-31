@@ -57,7 +57,7 @@ class SegmentationDataModule(pl.LightningDataModule):
 
         self.val_slice_loader = SliceLoader(self.val_dataset, slices_per_epoch=self.val_slices_per_epoch, elastic_deform=False)
 
-        self.test_dataset = ImagePairDataset(self.data_dir + "test", predict_mode=False, image_transform=square_pad, label_transform=square_pad)
+        self.test_dataset = ImagePairDataset(self.data_dir + "val", predict_mode=False, image_transform=square_pad, label_transform=square_pad)
 
     def train_dataloader(self):
         return DataLoader(self.train_slice_loader, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)

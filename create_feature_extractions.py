@@ -20,15 +20,17 @@ if len(args) == 2:
     job_index = int(args[0])
     num_jobs = int(args[1])
 
-image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
+image_path = "/home/blg515/masters-thesis/oai_images/" #"/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
 
-subjects_df = pd.read_csv("/home/blg515/image_samples.csv")
+subjects_df = pd.read_csv("/home/blg515/masters-thesis/image_samples.csv")
 image_files = subjects_df["filename"].values #np.loadtxt("/home/blg515/masters-thesis/subject_images.txt", dtype="str")
 
 assert os.path.exists(image_path)
 
 if num_jobs > 1:
+    n = len(image_files)
     image_files = np.array_split(image_files, num_jobs)[job_index]
+    print(f"Creating split of {len(image_files)} out of {n} total samples.")
 
 class Square_pad:
     def __call__(self, image: torch.Tensor):
@@ -82,15 +84,15 @@ litunet.eval()
 litunet.to(device)
 
 regex = re.compile("feature_extract(_\d+)?\.csv")
-csv_files = [file for file in os.listdir("/home/blg515/masters-thesis") if regex.match(file)]
+csv_files = [file for file in os.listdir("/home/blg515/masters-thesis/") if regex.match(file)]
 computed_files = []
 for file in csv_files:
     df = pd.read_csv(file)
     for _, row in df.iterrows():
         computed_files.append(row["filename"])
 
-if os.path.exists(f"feature_extract_{i}.csv")
-    df = pd.read_csv(f"feature_extract_{i}.csv")
+if os.path.exists(f"feature_extract_{job_index}.csv"):
+    df = pd.read_csv(f"feature_extract_{job_index}.csv")
 else:
     df = pd.DataFrame()
 
@@ -162,6 +164,7 @@ with torch.no_grad():
             df.to_csv(f"feature_extract.csv", index=False)
         pbar.update(1)
 
+pbar.close()
 if len(failed_files) > 0:
     print(f"Failed to create imaging biomarkers for the following {len(failed_files)} files.")
     for file in failed_files:

@@ -104,23 +104,27 @@ metrics:
             """)
 
             for metric_key, metric_values in metrics.items():
-                self.per_class_metrics[metric_key] += metric_values
+                self.per_class_metrics[metric_key].append(metric_values)
 
             self.num_test_samples += 1
 
     def on_test_start(self):
         self.num_test_samples = 0
         self.per_class_metrics = {
-            "accuracy": np.zeros(self.unet.n_classes - 1),
-            "precision": np.zeros(self.unet.n_classes - 1),
-            "recall": np.zeros(self.unet.n_classes - 1),
-            "specificity": np.zeros(self.unet.n_classes - 1),
-            "dice": np.zeros(self.unet.n_classes - 1)
+            "accuracy": [],
+            "precision": [],
+            "recall": [],
+            "specificity": [],
+            "dice": []
         }
 
     def on_test_end(self):
-        self.per_class_metrics = {key: val / self.num_test_samples for key, val in self.per_class_metrics.items()}
-        save_metrics_csv(self.per_class_metrics, self.unet.class_names)
+        per_class_dict = {}
+        for key, val in self.per_class_metrics.items():
+            per_class_dict[key + "_mean"] = np.mean(val, axis=0)
+            per_class_dict[key + "_std"] = np.std(val, axis=0)
+
+        save_metrics_csv(per_class_dict, self.unet.class_names)
 
     def _predict_view(self, image_volume):
         tmp_vol = None
@@ -193,7 +197,7 @@ metrics:
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.unet.parameters(), lr=self.lr)
-        lr_scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=2)
+        lr_scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.9, patience=2)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

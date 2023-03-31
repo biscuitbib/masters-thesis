@@ -11,13 +11,15 @@ class FixedFeatureLSTM(nn.Module):
         self.hidden_size = hidden_size
         self.n_classes = n_classes
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(self.n_features, self.hidden_size, self.num_layers, batch_first=True)
+        self.lstm = nn.LSTM(self.n_features, self.hidden_size, self.num_layers, batch_first=True, dropout=0.3)
         self.fc = nn.Linear(self.hidden_size, self.n_classes)
 
     def forward(self, seq):
         out, _ = self.lstm(seq)
         last_out = out[:, -1, ...] # last output for each sequence in the batch
         out = self.fc(last_out)
+        if torch.any(torch.isnan(out)):
+            raise Exception("LSTM produces NaN")
         return out
 
 

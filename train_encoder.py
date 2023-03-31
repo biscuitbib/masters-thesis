@@ -1,19 +1,30 @@
 import os
+import sys
 
+import yaml
 import numpy as np
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
 from sklearn.model_selection import train_test_split
+
 from thesisproject.models.mpu import LitMPU, UNet
 from thesisproject.models.encoder import Encoder, LitEncoder, EncoderDataModule
 
-# Data
-image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
-subjects_csv = "/home/blg515/image_samples.csv"
+with open("/home/blg515/masters-thesis/hparams.yaml", "r") as stream:
+    hparams = yaml.safe_load(stream)
 
-train_indices = np.load("/home/blg515/train_ids.npy", allow_pickle=True).astype(str)
-train_indices, val_indices = train_test_split(train_indices, test_size=0.5, shuffle=True)
+args = sys.argv[1:]
+encoding_size_index = int(args[0])
+
+assert torch.cuda.is_available(), "No GPU available."
+
+# Data
+image_path = "/home/blg515/masters-thesis/oai_images" #"/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
+subjects_csv = "/home/blg515/masters-thesis/image_samples.csv"
+
+train_indices = np.load("/home/blg515/masters-thesis/train_ids.npy", allow_pickle=True).astype(str)
+train_indices, val_indices = train_test_split(train_indices, test_size=0.6, shuffle=True)
 
 encoder_data = EncoderDataModule(
     image_path,
@@ -26,7 +37,7 @@ encoder_data = EncoderDataModule(
 )
 
 ## Model
-mpu_checkpoint = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9494/checkpoints/epoch=36-step=4625.ckpt"
+mpu_checkpoint = hparams["mpu_path"]
 
 label_keys = ["Lateral femoral cart.",
                 "Lateral meniscus",
@@ -43,15 +54,19 @@ mpu = LitMPU.load_from_checkpoint(mpu_checkpoint, unet=unet)
 
 unet: UNet = mpu.unet
 
-encoder = Encoder(1448, unet.fc_in, 500)
+encoding_size = hparams["encoder"]["encoding_size"][encoding_size_index]
+
+print(f"Training encoder with encoding_size={encoding_size}")
+
+encoder = Encoder(1448, unet.fc_in, encoding_size)
 
 model = LitEncoder(unet, encoder)
 
 # Training
-checkpoint_path = None#"/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_6438/checkpoints/epoch=33-step=5678.ckpt"
+checkpoint_path = None
 
 # Callbacks
-early_stopping = EarlyStopping("loss/val_loss", mode="min", min_delta=0.0, patience=15)
+early_stopping = EarlyStopping("loss/train", mode="min", min_delta=0.0, patience=15)
 lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
 num_gpus = torch.cuda.device_count()
@@ -63,14 +78,12 @@ trainer = pl.Trainer(
     callbacks=[early_stopping, lr_monitor],
     default_root_dir="model_saves/encoder/",
     profiler="simple",
-    auto_lr_find=True,
-    auto_scale_batch_size=False,
     enable_progress_bar=True,
     accumulate_grad_batches=2,
     max_epochs=100
 )
 
-#trainer.tune(model, datamodule=encoder_data)
+print(f"saving model to {trainer.logger.log_dir}")
 
 trainer.fit(
     model=model,

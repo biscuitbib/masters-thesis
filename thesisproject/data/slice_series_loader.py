@@ -13,7 +13,6 @@ class SliceSeriesLoader(IterableDataset):
         image_transform=None,
         elastic_deform=True
         ):
-
         self.dataset_queue = dataset_queue
         self.slices_per_epoch = slices_per_epoch
         self.image_transform = image_transform
@@ -69,9 +68,6 @@ class SliceSeriesLoader(IterableDataset):
             image_slices = torch.stack(image_chunks, dim=0)
 
         image_slices = torch.stack([(image_slice - torch.mean(image_slice)) / torch.std(image_slice)  for image_slice in image_slices], dim=0)
-        #image_slices = torch.stack([image_slice / image_slice.max() if image_slice.max() > 0 else image_slice for image_slice in image_slices], dim=0)
-        #image_slices -= torch.min(image_slices, dim=0).values
-        #image_slices /= torch.max(image_slices, dim=0).values
 
         if image_slices.shape[0] == 1:
             image_slices = image_slices.squeeze(0)

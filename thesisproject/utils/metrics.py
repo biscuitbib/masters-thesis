@@ -5,11 +5,12 @@ from sklearn.metrics import confusion_matrix
 
 
 def save_metrics_csv(metrics, class_names):
+    print(metrics)
     with open("eval.csv", "w") as f:
-        headers = ["metric", *[f"{class_name}" for class_name in class_names], "mean"]
+        headers = ["metric", *[f"{class_name}" for class_name in class_names], "mean", "std"]
         f.write(",".join(headers) + "\n")
         for metric, values in metrics.items():
-            row = [metric, *values, np.mean(values)]
+            row = [metric, *[round(value, 4) for value in values], round(np.mean(values), 4), round(np.std(values), 4)]
             f.write(",".join([str(v) for v in row]) + "\n")
 
 def get_multiclass_metrics(pred, target, remove_bg=False):

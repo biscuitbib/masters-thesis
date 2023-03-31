@@ -1,6 +1,9 @@
 import os
+import sys
 
+import yaml
 import numpy as np
+import re
 import pytorch_lightning as pl
 import torch
 import pandas as pd
@@ -16,30 +19,38 @@ from tqdm import tqdm
 
 from thesisproject.models.lstm import BiomarkerLSTMDataModule, LitBiomarkerLSTM, LSTM
 
-train_indices = np.load("/home/blg515/train_ids.npy", allow_pickle=True).astype(str)
-val_indices = np.load("/home/blg515/val_ids.npy", allow_pickle=True).astype(str)
-test_indices = np.load("/home/blg515/test_ids.npy", allow_pickle=True).astype(str)
+with open("/home/blg515/masters-thesis/hparams.yaml", "r") as stream:
+    hparams = yaml.safe_load(stream)
 
-df0 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_0.csv")
-df1 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_1.csv")
-df2 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_2.csv")
-df3 = pd.read_csv("/home/blg515/masters-thesis/feature_extract_3.csv")
+args = sys.argv[1:]
+hidden_size_index = int(args[0])
 
-subjects_df = pd.concat([df0, df1, df2, df3], ignore_index=True).sample(frac=1)
+train_indices = np.load("/home/blg515/masters-thesis/train_ids.npy", allow_pickle=True).astype(str)
+val_indices = np.load("/home/blg515/masters-thesis/val_ids.npy", allow_pickle=True).astype(str)
+test_indices = np.load("/home/blg515/masters-thesis/test_ids.npy", allow_pickle=True).astype(str)
+
+regex = re.compile("feature_extract(_\d+)?\.csv")
+csv_files = [file for file in os.listdir("/home/blg515/masters-thesis/") if regex.match(file)]
+
+subjects_df = pd.concat([pd.read_csv(csv) for csv in csv_files], ignore_index=True).sample(frac=1)
 n_features = subjects_df.shape[1] - 4 # Exclude columns: filename, subject_id_and_knee, TKR, is_right
 
 lstm_data = BiomarkerLSTMDataModule(
-    subjects_df, batch_size=8,
+    subjects_df,
+    batch_size=8,
     train_indices=train_indices,
     val_indices=val_indices,
     test_indices=test_indices
     )
 
-lstm = LSTM(n_features, 1000, 2)
+hidden_size = hparams["lstm"]["hidden_size"][hidden_size_index]
+lstm = LSTM(n_features, hidden_size, 2)
 model = LitBiomarkerLSTM(lstm)
 
+print(f"Training imaging biomarker LSTM with hidden_size={hidden_size}")
+
 # Callbacks
-early_stopping = EarlyStopping("loss/val_loss", mode="min", min_delta=0.0, patience=15)
+early_stopping = EarlyStopping("loss/val_loss", mode="min", min_delta=0.0, patience=30)
 lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
 # Training
@@ -60,10 +71,10 @@ trainer = pl.Trainer(
     auto_scale_batch_size=False,
     enable_progress_bar=True,
     accumulate_grad_batches=2,
-    max_epochs=100
+    max_epochs=1000
 )
 
-#trainer.tune(model, datamodule=lstm_data)
+print(f"saving model to {trainer.logger.log_dir}")
 
 trainer.fit(
     model=model,

@@ -26,4 +26,4 @@ class BiomarkerLSTMDataset(Dataset):
         features["visit"] -= features["visit"].min()
         features = features.values
 
-        return torch.from_numpy(features), TKR
+        return torch.from_numpy(features).float(), TKR

@@ -4,11 +4,11 @@ import torch
 from pathlib import Path
 from typing import List
 
-class ImageSeries:
+class ImageStack:
     """
     Image series and medical outcome label
     """
-    def __init__(self, identifier, image_paths: List[Path], timedeltas=None, label=None, sample_weight=1.0, image_transform=None):
+    def __init__(self, identifier, image_paths: List[Path], n_visits=1, timedeltas=None, label=None, sample_weight=1.0, image_transform=None):
         self.predict_mode = label is not None
         self.identifier = identifier
         self.sample_weight = sample_weight
@@ -17,6 +17,7 @@ class ImageSeries:
         self.image_paths = image_paths
 
         self._image_objs = [nib.load(filename) for filename in self.image_paths]
+        self.n_visits = min(len(self._image_objs), n_visits)
 
         self._images = None
         self._label = label
@@ -28,6 +29,9 @@ class ImageSeries:
         self.im_dtype = torch.float32
         self.lab_dtype = torch.uint8
 
+    def __repr__(self):
+        return self.identifier
+
     @property
     def is_loaded(self):
         return self._images is not None
@@ -37,7 +41,7 @@ class ImageSeries:
         if self._images is None:
             self._images = []
             for obj in self._image_objs:
-                image = torch.from_numpy(obj.get_fdata(caching='unchanged')).type(self.im_dtype)
+                image= torch.from_numpy(obj.get_fdata(caching='unchanged')).type(self.im_dtype)
 
                 if self.image_transform:
                     image = self.image_transform(image)
@@ -49,7 +53,7 @@ class ImageSeries:
 
             self._images = torch.stack(self._images, dim=0)
 
-        return self._images
+        return self._images[-self.n_visits:]
 
     @property
     def label(self):

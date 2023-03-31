@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import Normalizer, StandardScaler
 
 from .image_series_dataset import ImageSeriesDataset
 from thesisproject.data.slice_series_loader import SliceSeriesLoader
@@ -62,6 +63,13 @@ class BiomarkerLSTMDataModule(pl.LightningDataModule):
             train_df = self.subjects_df[self.subjects_df["subject_id_and_knee"].isin(self.train_indices)]
             val_df = self.subjects_df[self.subjects_df["subject_id_and_knee"].isin(self.val_indices)]
             test_df = self.subjects_df[self.subjects_df["subject_id_and_knee"].isin(self.test_indices)]
+
+        # Scale feature columns wrt. training data.
+        cols = train_df.columns[~train_df.columns.isin(["subject_id_and_knee", "TKR", "filename", "is_right", "visit"])]
+        scaler = StandardScaler().fit(train_df[cols])
+        train_df[cols] = scaler.transform(train_df[cols])
+        val_df[cols] = scaler.transform(val_df[cols])
+        test_df[cols] = scaler.transform(test_df[cols])
 
         # train data
         self.train_dataset = BiomarkerLSTMDataset(train_df)

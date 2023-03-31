@@ -1,6 +1,7 @@
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from torch.nn.functional import softmax
 from .encoder import Encoder
 from thesisproject.models.mpu import UNet
 from thesisproject.utils import get_multiclass_metrics, save_metrics_csv
@@ -14,7 +15,7 @@ class LitEncoder(pl.LightningModule):
     Takes a pretrained U-net and.
     Training and validation is done on slices of image volumes and predictions are made on entire image volumes.
     """
-    def __init__(self, unet: UNet, encoder: Encoder):
+    def __init__(self, unet: UNet, encoder: Encoder, lr=1e-5, weight_decay=1e-5):
         super().__init__()
         self.unet = unet
         self.unet.encode = True
@@ -26,8 +27,8 @@ class LitEncoder(pl.LightningModule):
         ) #Linear layer for pretraining
 
         self.criterion = nn.CrossEntropyLoss()
-        self.lr = 1e-4
-        self.weight_decay = 0 #1e-6
+        self.lr = lr
+        self.weight_decay = weight_decay
 
     def forward(self, x):
         x = self.unet(x)
@@ -58,8 +59,6 @@ class LitEncoder(pl.LightningModule):
 
             encodings = self.encoder(unet_bottleneck)
             outputs = self.fc(encodings)
-
-        print(f"pred vs label: {torch.argmax(outputs, dim=1)} {labels}")
 
         loss = self.criterion(outputs, labels)
 
@@ -100,15 +99,25 @@ class LitEncoder(pl.LightningModule):
         }
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
 
+    def predict(self, images):
+        self.unet.eval()
+        self.encoder.eval()
+        self.fc.eval()
+        with torch.no_grad():
+            unet_bottleneck = self.unet(images)
+            encodings = self.encoder(unet_bottleneck)
+            outputs = self.fc(encodings)
+            return softmax(outputs, dim=1)
+
     def configure_optimizers(self):
         params = list(self.encoder.parameters()) + list(self.fc.parameters())
         optimizer = optim.Adam(params, lr=self.lr, weight_decay=self.weight_decay)
-        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
+        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.9, patience=2)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": lr_scheduler,
-                "monitor": "loss/val_loss",
+                "monitor": "loss/train",
                 "frequency": 1
             },
         }

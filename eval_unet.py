@@ -1,6 +1,10 @@
+import yaml
 import pytorch_lightning as pl
 import torch
 from thesisproject.models.mpu import LitMPU, UNet, SegmentationDataModule
+
+with open("/home/blg515/masters-thesis/hparams.yaml", "r") as stream:
+    hparams = yaml.safe_load(stream)
 
 # Data
 #path = "../toy-data/"
@@ -15,7 +19,7 @@ segmentation_data = SegmentationDataModule(
 
 
 # Model
-checkpoint_path = "/home/blg515/masters-thesis/model_saves/unet/lightning_logs/version_9494/checkpoints/epoch=36-step=4625.ckpt"
+checkpoint_path = hparams["mpu_path"]
 
 label_keys = [
     "Lateral femoral cart.",

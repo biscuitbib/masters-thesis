@@ -5,10 +5,9 @@ import nibabel as nib
 from tqdm import tqdm
 import pandas as pd
 
-image_samples = pd.read_csv("/home/blg515/image_samples.csv")
+image_samples = pd.read_csv("/home/blg515/masters-thesis/image_samples.csv")
 
-image_path = "/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
-
+image_path = "/home/blg515/masters-thesis/oai_images/"
 image_files = image_samples["filename"].values
 
 b_to_mb = 0.000001

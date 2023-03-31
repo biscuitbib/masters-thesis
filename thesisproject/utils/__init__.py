@@ -7,3 +7,4 @@ from .image import (
     mask_to_rgb,
     grayscale_to_rgb
 )
+from .delong import delong_roc_test, zero_oner

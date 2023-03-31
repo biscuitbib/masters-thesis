@@ -139,3 +139,5 @@ predictions/
 *.nii.gz
 *.npy
 *.csv
+*.png
+*.pickle

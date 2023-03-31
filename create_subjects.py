@@ -155,7 +155,6 @@ dataset_df.to_csv("subjects.csv", index=False)
 """
 Get images from subjects
 """
-#image_filenames = set(np.loadtxt("image_filenames.txt", dtype="str"))
 image_df = None
 subject_id_and_knees = dataset_df["subject_id_and_knee"].unique()
 

@@ -1,6 +1,7 @@
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from torch.nn.functional import softmax
 from torch.nn.utils.rnn import pad_sequence
 from thesisproject.utils import (get_multiclass_metrics,
                                  save_metrics_csv)
@@ -14,6 +15,7 @@ class LitBiomarkerLSTM(pl.LightningModule):
 
         self.criterion = nn.CrossEntropyLoss()
         self.lr = 1e-4
+        self.weight_decay = 0.0075
 
     def forward(self, x):
         return self.lstm(x)
@@ -41,6 +43,7 @@ class LitBiomarkerLSTM(pl.LightningModule):
         metrics = get_multiclass_metrics(outputs.detach().cpu(), labels.detach().cpu(), remove_bg=True)
 
         log_values = {
+            "val/class_ratio": np.mean(labels.detach().cpu().numpy()),
             "loss/val_loss": loss.detach(),
             "val/accuracy": np.mean(metrics["accuracy"]),
             "val/precision": np.mean(metrics["precision"]),
@@ -49,9 +52,16 @@ class LitBiomarkerLSTM(pl.LightningModule):
         }
         self.log_dict(log_values, on_step=False, on_epoch=True, sync_dist=True)
 
+    def predict(self, inputs):
+        self.lstm.eval()
+        with torch.no_grad():
+            outputs = self.lstm(inputs)
+            return softmax(outputs, dim=1)
+
+
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr)
-        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4)
+        optimizer = optim.Adam(self.lstm.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.8, patience=4)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

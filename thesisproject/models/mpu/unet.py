@@ -49,6 +49,8 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
 
         if self.encode:
+            if torch.any(torch.isnan(x5)):
+                raise Exception("U-net produces NaN")
             return x5
 
         x = self.up1(x5, x4)

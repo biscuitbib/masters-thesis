@@ -43,7 +43,8 @@ class EncoderDataModule(pl.LightningDataModule):
         val_slices_per_epoch: int=1000,
         test_slices_per_epoch: int=1000,
         train_indices=None,
-        val_indices=None
+        val_indices=None,
+        test_indices=None
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -56,6 +57,7 @@ class EncoderDataModule(pl.LightningDataModule):
 
         self.train_indices = train_indices
         self.val_indices = val_indices
+        self.test_indices = test_indices
 
         self.collate_fn = None
 
@@ -74,7 +76,14 @@ class EncoderDataModule(pl.LightningDataModule):
 
         val_dataset = ImageTKRDataset(self.data_dir, val_df, image_transform=SquarePad())
 
-        self.val_slice_loader = SliceSeriesLoader(val_dataset, slices_per_epoch=self.train_slices_per_epoch, elastic_deform=False)
+        self.val_slice_loader = SliceSeriesLoader(val_dataset, slices_per_epoch=self.val_slices_per_epoch, elastic_deform=False)
+
+        if self.test_indices is not None:
+            test_df = subjects_df[subjects_df["subject_id_and_knee"].isin(self.test_indices)]
+            test_dataset = ImageTKRDataset(self.data_dir, test_df, image_transform=SquarePad())
+            self.test_slice_loader = SliceSeriesLoader(test_dataset, slices_per_epoch=self.val_slices_per_epoch, elastic_deform=False)
+        else:
+            self.test_slice_loader = self.val_slice_loader
 
 
     def train_dataloader(self):
@@ -82,3 +91,9 @@ class EncoderDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(self.val_slice_loader, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, collate_fn=self.collate_fn)
+
+    def test_dataloader(self):
+        if self.test_slice_loader is not None:
+            return DataLoader(self.test_slice_loader, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, collate_fn=self.collate_fn)
+        else:
+            return self.val_dataloader()
