@@ -2,6 +2,11 @@ import pandas as pd
 import numpy as np
 import scipy.stats
 
+"""
+Code snippets taken from
+https://github.com/lathomsen/TKR_prediction_from_serial_MRI_and_Clinical_data/blob/main/Statistics.ipynb
+"""
+
 # AUC comparison adapted from
 # https://github.com/Netflix/vmaf/
 def compute_midrank(x):
