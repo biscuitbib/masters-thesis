@@ -47,13 +47,14 @@ class BiomarkerLSTMDataModule(pl.LightningDataModule):
         """
         data is list[tuple(input, label)]
         """
-        input_list, target_list = [], []
-        for [features, label] in batch:
+        input_list, target_list, identifier_list = [], [], []
+        for [features, label, identifier] in batch:
             input_list.append(features)
             target_list.append(label)
+            identifier_list.append(identifier)
         input_list = pad_sequence(input_list, batch_first=True)
         target_list = torch.tensor(target_list)
-        return [input_list, target_list]
+        return [input_list, target_list, identifier_list]
 
     def setup(self, stage: str):
         if self.train_indices is None or self.val_indices is None or self.test_indices is None:

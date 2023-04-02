@@ -42,11 +42,13 @@ else:
 image_path = "/home/blg515/masters-thesis/oai_images" #"/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
 subjects_csv = "/home/blg515/masters-thesis/image_samples.csv"
 
+test_df = pd.read_csv("/home/blg515/masters-thesis/test_results.csv")
+
 train_indices = np.load("/home/blg515/masters-thesis/train_ids.npy", allow_pickle=True).astype(str)
 val_indices = np.load("/home/blg515/masters-thesis/val_ids.npy", allow_pickle=True).astype(str)
 test_indices = np.load("/home/blg515/masters-thesis/test_ids.npy", allow_pickle=True).astype(str)
 
-
+"""
 # lstm
 data = LSTMDataModule(
     image_path,
@@ -72,7 +74,7 @@ data = LinearDataModule(
     val_indices=val_indices,
     test_indices=test_indices
 )
-"""
+
 data.setup("test")
 
 ## Models
@@ -90,20 +92,24 @@ lstm_checkpoint = hparams["lstm"]["fixed_lstm_path"][encoding_size_index * 3 + h
 
 lstm = LSTM(encoder.vector_size + 1, hidden_size, 2) #input size is vector size + 1 if adding dt
 
-#linear_checkpoint = hparams["linear_regression"]["fixed_linear_path"][encoding_size_index * 3 + n_visits_index]
+linear_checkpoint = hparams["linear_regression"]["fixed_linear_path"][encoding_size_index * 3 + n_visits_index]
 
-#linear = LinearModel(encoding_size * n_visits)
+linear = LinearModel(encoding_size * n_visits)
 
-#full_linear_checkpoint = hparams["linear_regression"]["full_linear_path"]
-#model = LitFullLinearModel(unet, encoder, linear, n_visits=n_visits).load_from_checkpoint(full_linear_checkpoint, unet=unet, encoder=encoder, linear=linear, n_visits=n_visits)
+full_linear_checkpoint = hparams["linear_regression"]["full_linear_path"]
+model = LitFullLinearModel(unet, encoder, linear, n_visits=n_visits).load_from_checkpoint(full_linear_checkpoint, unet=unet, encoder=encoder, linear=linear, n_visits=n_visits)
 
-full_lstm_checkpoint = hparams["lstm"]["full_lstm_path"]
-model = LitFullLSTM(unet, encoder, lstm).load_from_checkpoint(full_lstm_checkpoint, unet=unet, encoder=encoder, lstm=lstm)
+#full_lstm_checkpoint = hparams["lstm"]["full_lstm_path"]
+#model = LitFullLSTM(unet, encoder, lstm).load_from_checkpoint(full_lstm_checkpoint, unet=unet, encoder=encoder, lstm=lstm)
 
 dataloader = data.test_dataloader()
 
 #Change depending on model
-model_name = f"full_lstm_encoding_size={encoding_size}_hidden_size={hidden_size}_test"
+model_name = f"full_lr_encoding_size={encoding_size}_n_visits={n_visits}_test"
+col_name = f"full_lr_l{encoding_size}_n{n_visits}_test"
+if col_name not in test_df.columns:
+    test_df[col_name] = np.nan
+
 print("Calculating AUC for " + model_name)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -123,13 +129,18 @@ for batch in tqdm(dataloader):
         images, labels, timedeltas = imageObject.image.to(device), imageObject.label, imageObject.timedeltas.to(device)
 
         with torch.no_grad():
-            outputs, volume_prediction = model.predict(images, timedeltas)#[:, 1]
+            output, volume_prediction = model.predict(images)#[:, 1]
 
-            predictions.append(outputs.detach().cpu().clone())
+            predictions.append(output.item())
             true_labels.append(labels)
 
+            # Add prediction value to test_df
+            identifier = imageObject.identifier
+            index = test_df[test_df["subject_id_and_knee"] == identifier].index[0]
+            test_df.at[index, col_name] = output.item()
+
     volume_prediction = np.stack([view_prediction.detach().cpu().numpy() for view_prediction in volume_prediction])
-    if outputs < 0.5:
+    if output < 0.5:
         if false_volume_predictions is None:
             false_volume_predictions = volume_prediction
         else:
@@ -142,26 +153,13 @@ for batch in tqdm(dataloader):
             true_volume_predictions += volume_prediction
         n_true += 1
 
-
     gc.collect()
     torch.cuda.empty_cache()
 
-    """
-    if predictions is None:
-        predictions = outputs
-    else:
-        predictions = torch.cat([predictions, outputs])
+test_df.to_csv(f"/home/blg515/masters-thesis/test_results.csv", index=False)
 
-    if true_labels is None:
-        true_labels = labels
-    else:
-        true_labels = torch.cat([true_labels, labels])
-    """
-
-np.save("true_preds_test", true_volume_predictions / n_true)
-np.save("false_preds_test", false_volume_predictions / n_false)
-print("true predictions: ", n_true)
-print("false predictions: ", n_false)
+true_labels = np.array(true_labels)
+predictions = np.array(predictions)
 
 fpr, tpr, _ = roc_curve(true_labels, predictions)
 auc_score = auc(fpr, tpr)
@@ -176,3 +174,10 @@ ax.set(xlabel="False Positive Rate", ylabel="True Positive Rate")
 plt.plot([0, 1], [0, 1], linestyle="dashed", color="black", alpha=0.5, label="Random Classifier")
 plt.legend()
 plt.savefig(model_name + "_auc.png")
+
+if n_true > 1:
+    np.save("lr_true_preds_train", true_volume_predictions / n_true)
+if n_false > 1:
+    np.save("lr_false_preds_train", false_volume_predictions / n_false)
+print("true predictions: ", n_true)
+print("false predictions: ", n_false)

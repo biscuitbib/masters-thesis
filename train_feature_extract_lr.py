@@ -27,13 +27,13 @@ train_indices = np.load("/home/blg515/masters-thesis/train_ids.npy", allow_pickl
 val_indices = np.load("/home/blg515/masters-thesis/val_ids.npy", allow_pickle=True).astype(str)
 test_indices = np.load("/home/blg515/masters-thesis/test_ids.npy", allow_pickle=True).astype(str)
 
+test_df = pd.read_csv("/home/blg515/masters-thesis/test_results.csv")
+
 regex = re.compile("feature_extract(_\d+)?\.csv")
 csv_files = [file for file in os.listdir("/home/blg515/masters-thesis/") if regex.match(file)]
 
 subjects_df = pd.concat([pd.read_csv(csv) for csv in csv_files], ignore_index=True).sample(frac=1)
 subjects_df = subjects_df.drop_duplicates().reset_index(drop=True)
-
-print(subjects_df.shape, subjects_df.columns)
 
 subject_id_and_knees = subjects_df["subject_id_and_knee"].unique()
 
@@ -42,6 +42,7 @@ print(f"{subjects_df.shape[0]} samples, with {len(subject_id_and_knees)} unique 
 def create_data(indices, n_visits=1):
     max_visits = subjects_df.groupby("subject_id_and_knee").size().max()
 
+    identifiers = []
     subjects = []
     labels = []
     print("Creating dataset...")
@@ -53,6 +54,7 @@ def create_data(indices, n_visits=1):
 
         rows = rows.sort_values("visit")
         TKR = int(rows["TKR"].values[0])
+        identifier = rows["subject_id_and_knee"].values[0]
         features = rows.loc[:, ~rows.columns.isin(["subject_id_and_knee", "TKR", "filename", "is_right", "visit"])]
         #features["visit"] -= features["visit"].min()
         features = features.values # list of feature vectors
@@ -61,21 +63,25 @@ def create_data(indices, n_visits=1):
         padding = np.zeros((max_visits - subject_visits, features.shape[1]))
         features_padded = np.concatenate([features, padding], axis=None)
 
+        identifiers.append(identifier)
         subjects.append(features[-n_visits:, :].reshape(-1))
         labels.append(TKR)
 
     subjects = np.array(subjects)
     labels = np.array(labels)
-    return subjects, labels
+    return subjects, labels, identifiers
 
 print(f"Linear regression with n_visits={n_visits}")
 
-X_train, y_train = create_data(train_indices, n_visits=n_visits)
-X_test, y_test = create_data(test_indices, n_visits=n_visits)
+X_train, y_train, _ = create_data(train_indices, n_visits=n_visits)
+X_test, y_test, identifiers = create_data(test_indices, n_visits=n_visits)
 
 print(f"{X_train.shape[0]} training samples out of {len(train_indices)} possible.")
 print(f"{X_test.shape[0]} test samples out of {len(test_indices)} possible.")
 
+col_name = f"lr_n{n_visits}"
+if col_name not in test_df.columns:
+    test_df[col_name] = np.nan
 
 # To normalize or not?
 normalizer = StandardScaler().fit(X_train)
@@ -106,6 +112,12 @@ auc_score = auc(fpr, tpr)
 y_pred_train = reg.predict(X_train_normalized)
 fpr_train, tpr_train, _ = roc_curve(y_train, y_pred_train)
 auc_score_train = auc(fpr_train, tpr_train)
+
+# Save predictions to test_df
+for identifier, pred in zip(identifiers, y_pred):
+    index = test_df[test_df["subject_id_and_knee"] == identifier].index[0]
+    test_df.at[index, col_name] = pred
+test_df.to_csv("/home/blg515/masters-thesis/test_results.csv", index=False)
 
 print(f"""
 Test metrics for linear regression classifier ({y_test.shape[0]} test samples):

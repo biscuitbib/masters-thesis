@@ -41,6 +41,8 @@ else:
 image_path = "/home/blg515/masters-thesis/oai_images" #"/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
 subjects_csv = "/home/blg515/masters-thesis/image_samples.csv"
 
+test_df = pd.read_csv("/home/blg515/masters-thesis/test_results.csv")
+
 train_indices = np.load("/home/blg515/masters-thesis/train_ids.npy", allow_pickle=True).astype(str)
 val_indices = np.load("/home/blg515/masters-thesis/val_ids.npy", allow_pickle=True).astype(str)
 test_indices = np.load("/home/blg515/masters-thesis/test_ids.npy", allow_pickle=True).astype(str)
@@ -68,7 +70,6 @@ data = LSTMDataModule(
     val_indices=val_indices,
     test_indices=val_indices
 )
-"""
 # linear
 n_visits = hparams["linear_regression"]["n_visits"][n_visits_index]
 data = LinearDataModule(
@@ -133,15 +134,19 @@ data.setup("test")
 
 lstm = LSTM(n_features, hidden_size, 2)
 model = LitBiomarkerLSTM(lstm).load_from_checkpoint(lstm_checkpoint, lstm=lstm)
-"""
 
 dataloader = data.test_dataloader()
 
-predictions = []
-true_labels = []
+predictions = None
+true_labels = None
+identifiers = None
+
+col_name = f"lstm_h{hidden_size}"
+if col_name not in test_df.columns:
+    test_df[col_name] = np.nan
 
 #Change depending on model
-model_name = f"full_lr_encoding_size={encoding_size}_n_visits={n_visits}_test"
+model_name = f"biomarker_lstm_hidden_size={hidden_size}_test"
 print("Calculating AUC for " + model_name)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -149,40 +154,38 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 for batch in tqdm(dataloader):
-    images, labels = batch[0].to(device), batch[1]
+    images, labels, identifier = batch[0].to(device), batch[1], batch[2]
 
     with torch.no_grad():
-        outputs = model.predict(images)#[:, 1]
+        outputs = model.predict(images)[:, 1]
 
-        print(outputs, labels)
-
-        predictions.append(outputs.detach().cpu().clone())
-        true_labels.append(labels)
-
-    del images
-    del outputs
-
-    gc.collect()
-    torch.cuda.empty_cache()
-
-    """
     if predictions is None:
-        predictions = outputs
+        predictions = outputs.detach().cpu().numpy()
     else:
-        predictions = torch.cat([predictions, outputs])
+        predictions = np.concatenate([predictions, outputs.detach().cpu().numpy()])
 
     if true_labels is None:
-        true_labels = labels
+        true_labels = np.array(labels.numpy())
     else:
-        true_labels = torch.cat([true_labels, labels])
-    """
+        true_labels = np.concatenate([true_labels, labels])
+
+    if identifiers is None:
+        identifiers = np.array(identifier)
+    else:
+        identifiers = np.concatenate([identifiers, identifier])
+
+# Save predictions to test_df
+for identifier, pred in zip(identifiers, predictions):
+    index = test_df[test_df["subject_id_and_knee"] == identifier].index[0]
+    test_df.at[index, col_name] = pred
+test_df.to_csv("/home/blg515/masters-thesis/test_results.csv", index=False)
 
 fpr, tpr, _ = roc_curve(true_labels, predictions)
 auc_score = auc(fpr, tpr)
 
 plt.style.use("seaborn")
 fig, ax = plt.subplots()
-ax.plot(fpr, tpr, color="blue", label=f"Encoder (AUC={round(auc_score, 3)})")
+ax.plot(fpr, tpr, color="blue", label=f"(AUC={round(auc_score, 3)})")
 
 plt.xlim(-0.01, 1.01)
 plt.ylim(-0.01, 1.01)

@@ -119,8 +119,8 @@ class LitFullLinearModel(pl.LightningModule):
         image_volumes is series of image volumes: K x H x W x D
         """
         volume_prediction = self._predict_volumes(image_volumes.squeeze(1))
-        volume_prediction = torch.stack([torch.mean(view_prediction) for view_prediction in volume_prediction], 0)
-        return torch.mean(volume_prediction)
+        volume_prediction_view_mean = torch.stack([torch.mean(view_prediction) for view_prediction in volume_prediction], 0)
+        return torch.mean(volume_prediction_view_mean), volume_prediction
 
     def on_test_start(self):
         self.prediction_list = []
