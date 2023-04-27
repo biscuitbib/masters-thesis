@@ -3,41 +3,54 @@
  encoder_path: ""
  encoder:
   encoding_path:
-   - "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_759/checkpoints/epoch=62-step=3969.ckpt"
-   - "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_973/checkpoints/epoch=83-step=5292.ckpt"
-   - "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_758/checkpoints/epoch=67-step=4284.ckpt"
+   - "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_8825/checkpoints/epoch=39-step=2520.ckpt"
+   #"/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_759/checkpoints/epoch=62-step=3969.ckpt"
+   - "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_8829/checkpoints/epoch=99-step=6300.ckpt"
+   #"/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_973/checkpoints/epoch=83-step=5292.ckpt"
+   - "/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_8765/checkpoints/epoch=35-step=2268.ckpt"
+   #"/home/blg515/masters-thesis/model_saves/encoder/lightning_logs/version_758/checkpoints/epoch=67-step=4284.ckpt"
   encoding_size:
    - 50
    - 200
    - 1000
  lstm:
-  full_lstm_path: "/home/blg515/masters-thesis/model_saves/full-lstm/lightning_logs/version_4335/checkpoints/epoch=35-step=4500.ckpt"
+  full_lstm_path: "/home/blg515/masters-thesis/model_saves/full-lstm/lightning_logs/version_246/checkpoints/epoch=23-step=1512.ckpt"
+  #"/home/blg515/masters-thesis/model_saves/full-lstm/lightning_logs/version_4335/checkpoints/epoch=35-step=4500.ckpt"
   fixed_lstm_path: # encoding_size X hidden_size
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1368/checkpoints/epoch=37-step=2394.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1691/checkpoints/epoch=26-step=1701.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1768/checkpoints/epoch=48-step=3087.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1369/checkpoints/epoch=40-step=2583.ckpt"
-   - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1692/checkpoints/epoch=26-step=1701.ckpt"
+   - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_9798/checkpoints/epoch=30-step=992.ckpt"
+   #"/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1692/checkpoints/epoch=26-step=1701.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1800/checkpoints/epoch=27-step=1764.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1370/checkpoints/epoch=46-step=2961.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1693/checkpoints/epoch=42-step=2709.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-lstm/lightning_logs/version_1367/checkpoints/epoch=27-step=1764.ckpt"
   biomarker_lstm_path:
-    - "/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_2109/checkpoints/epoch=114-step=5635.ckpt"
-    - "/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_2110/checkpoints/epoch=97-step=4802.ckpt"
-    - "/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_2107/checkpoints/epoch=98-step=4851.ckpt"
+    - "/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_976/checkpoints/epoch=1243-step=121912.ckpt"
+    #"/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_9398/checkpoints/epoch=1999-step=50000.ckpt"
+    #"/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_2109/checkpoints/epoch=114-step=5635.ckpt"
+    - "/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_977/checkpoints/epoch=264-step=25970.ckpt"
+    #"/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_9405/checkpoints/epoch=1999-step=50000.ckpt"
+    #"/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_2110/checkpoints/epoch=97-step=4802.ckpt"
+    - "/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_975/checkpoints/epoch=1178-step=115542.ckpt"
+    #"/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_9397/checkpoints/epoch=1999-step=50000.ckpt"
+    #"/home/blg515/masters-thesis/model_saves/biomarker-lstm/lightning_logs/version_2107/checkpoints/epoch=98-step=4851.ckpt"
   hidden_size:
    - 50
    - 200
    - 1000
  linear_regression:
-  full_linear_path: "/home/blg515/masters-thesis/model_saves/full-linear/lightning_logs/version_4333/checkpoints/epoch=16-step=2125.ckpt"
+  full_linear_path: "/home/blg515/masters-thesis/model_saves/full-linear/lightning_logs/version_247/checkpoints/epoch=21-step=1386.ckpt"
+  #"/home/blg515/masters-thesis/model_saves/full-linear/lightning_logs/version_4333/checkpoints/epoch=16-step=2125.ckpt"
   fixed_linear_path:
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2435/checkpoints/epoch=35-step=2268.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2697/checkpoints/epoch=32-step=2079.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2989/checkpoints/epoch=28-step=1827.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2436/checkpoints/epoch=35-step=2268.ckpt"
-   - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2698/checkpoints/epoch=32-step=2079.ckpt"
+   - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_9799/checkpoints/epoch=22-step=736.ckpt"
+   #"/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2698/checkpoints/epoch=32-step=2079.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_3009/checkpoints/epoch=28-step=1827.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2437/checkpoints/epoch=35-step=2268.ckpt"
    - "/home/blg515/masters-thesis/model_saves/fixed-linear/lightning_logs/version_2699/checkpoints/epoch=31-step=2016.ckpt"

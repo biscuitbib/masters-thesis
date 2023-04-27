@@ -9,13 +9,13 @@ from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class LitBiomarkerLSTM(pl.LightningModule):
-    def __init__(self, lstm):
+    def __init__(self, lstm, lr=1e-4, weight_decay=1e-3):
         super().__init__()
         self.lstm = lstm
 
         self.criterion = nn.CrossEntropyLoss()
-        self.lr = 1e-4
-        self.weight_decay = 0.0075
+        self.lr = lr
+        self.weight_decay = weight_decay
 
     def forward(self, x):
         return self.lstm(x)

@@ -9,7 +9,7 @@ from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class LitFixedLinearModel(pl.LightningModule):
-    def __init__(self, unet, encoder, linear, n_visits=1, lr=1e-5, weight_decay=1e-5):
+    def __init__(self, unet, encoder, linear, n_visits=1, lr=1e-3, weight_decay=1e-4):
         super().__init__()
         self.unet = unet
         self.unet.encode = True

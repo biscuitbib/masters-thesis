@@ -114,4 +114,5 @@ class LSTMDataModule(pl.LightningDataModule):
         return DataLoader(self.val_slice_loader, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, collate_fn=self.collate_fn)
 
     def test_dataloader(self):
+        #TODO check that using correct dataset
         return DataLoader(self.test_dataset, batch_size=1, num_workers=self.num_workers, pin_memory=True, collate_fn=lambda imageseries: imageseries)

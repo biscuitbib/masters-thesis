@@ -41,7 +41,7 @@ else:
 image_path = "/home/blg515/masters-thesis/oai_images" #"/home/blg515/ucph-erda-home/OsteoarthritisInitiative/NIFTY/"
 subjects_csv = "/home/blg515/masters-thesis/image_samples.csv"
 
-test_df = pd.read_csv("/home/blg515/masters-thesis/test_results.csv")
+test_df = pd.read_csv("/home/blg515/masters-thesis/results.csv")
 
 train_indices = np.load("/home/blg515/masters-thesis/train_ids.npy", allow_pickle=True).astype(str)
 val_indices = np.load("/home/blg515/masters-thesis/val_ids.npy", allow_pickle=True).astype(str)
@@ -123,6 +123,8 @@ lstm_index = int(args[0])
 hidden_size = hparams["lstm"]["hidden_size"][lstm_index]
 lstm_checkpoint = hparams["lstm"]["biomarker_lstm_path"][lstm_index]
 
+print(lstm_checkpoint)
+
 data = BiomarkerLSTMDataModule(
     subjects_df,
     batch_size=8,
@@ -141,7 +143,7 @@ predictions = None
 true_labels = None
 identifiers = None
 
-col_name = f"lstm_h{hidden_size}"
+col_name = f"ib_lstm_h{hidden_size}_test"
 if col_name not in test_df.columns:
     test_df[col_name] = np.nan
 
@@ -174,11 +176,12 @@ for batch in tqdm(dataloader):
     else:
         identifiers = np.concatenate([identifiers, identifier])
 
+
 # Save predictions to test_df
 for identifier, pred in zip(identifiers, predictions):
     index = test_df[test_df["subject_id_and_knee"] == identifier].index[0]
     test_df.at[index, col_name] = pred
-test_df.to_csv("/home/blg515/masters-thesis/test_results.csv", index=False)
+test_df.to_csv("/home/blg515/masters-thesis/results.csv", index=False)
 
 fpr, tpr, _ = roc_curve(true_labels, predictions)
 auc_score = auc(fpr, tpr)

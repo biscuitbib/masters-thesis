@@ -15,7 +15,7 @@ class LitEncoder(pl.LightningModule):
     Takes a pretrained U-net and.
     Training and validation is done on slices of image volumes and predictions are made on entire image volumes.
     """
-    def __init__(self, unet: UNet, encoder: Encoder, lr=1e-5, weight_decay=1e-5):
+    def __init__(self, unet: UNet, encoder: Encoder, lr=1e-5, weight_decay=1e-4):
         super().__init__()
         self.unet = unet
         self.unet.encode = True

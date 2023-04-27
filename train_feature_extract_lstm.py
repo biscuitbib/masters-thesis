@@ -44,8 +44,9 @@ lstm_data = BiomarkerLSTMDataModule(
     )
 
 hidden_size = hparams["lstm"]["hidden_size"][hidden_size_index]
+weight_decay = [0.01, 0.001, 0.01][hidden_size_index]
 lstm = LSTM(n_features, hidden_size, 2)
-model = LitBiomarkerLSTM(lstm)
+model = LitBiomarkerLSTM(lstm, lr=1e-5, weight_decay=weight_decay)
 
 print(f"Training imaging biomarker LSTM with hidden_size={hidden_size}")
 
@@ -70,8 +71,8 @@ trainer = pl.Trainer(
     auto_lr_find=True,
     auto_scale_batch_size=False,
     enable_progress_bar=True,
-    accumulate_grad_batches=2,
-    max_epochs=1000
+    #accumulate_grad_batches=2,
+    max_epochs=2000
 )
 
 print(f"saving model to {trainer.logger.log_dir}")

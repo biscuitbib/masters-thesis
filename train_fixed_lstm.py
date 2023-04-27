@@ -33,7 +33,7 @@ train_indices, val_indices = train_test_split(train_indices, test_size=0.6, shuf
 lstm_data = LSTMDataModule(
     image_path,
     subjects_csv,
-    batch_size=8,
+    batch_size=16,
     train_slices_per_epoch=1000,
     val_slices_per_epoch=500,
     train_indices=train_indices,
@@ -55,7 +55,7 @@ lit_encoder = LitEncoder(unet, encoder).load_from_checkpoint(encoder_checkpoint,
 
 hidden_size = hparams["lstm"]["hidden_size"][hidden_size_index]
 lstm = LSTM(encoder.vector_size + 1, hidden_size, 2) #input size is vector size + 1 if adding dt
-model = LitFixedLSTM(unet, encoder, lstm)
+model = LitFixedLSTM(unet, encoder, lstm, lr=1e-4, weight_decay=1e-3)
 
 print(f"Training LSTM with encoding_size={encoding_size}, hidden_size={hidden_size}")
 

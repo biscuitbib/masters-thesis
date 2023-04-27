@@ -29,7 +29,7 @@ train_indices, val_indices = train_test_split(train_indices, test_size=0.6, shuf
 encoder_data = EncoderDataModule(
     image_path,
     subjects_csv,
-    batch_size=8,
+    batch_size=16,
     train_slices_per_epoch=1000,
     val_slices_per_epoch=500,
     train_indices=train_indices,

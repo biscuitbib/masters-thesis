@@ -36,7 +36,7 @@ n_visits = hparams["linear_regression"]["n_visits"][n_visits_index]
 linear_data = LinearDataModule(
     image_path,
     subjects_csv,
-    batch_size=8,
+    batch_size=16,
     n_visits=n_visits,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000,
@@ -62,7 +62,7 @@ linear_checkpoint = hparams["linear_regression"]["fixed_linear_path"][encoding_s
 linear = LinearModel(encoding_size * n_visits)
 lit_linear = LitFixedLinearModel(unet, encoder, linear, n_visits=n_visits).load_from_checkpoint(linear_checkpoint, unet=unet, encoder=encoder, linear=linear, n_visits=n_visits)
 
-model = LitFullLinearModel(unet, encoder, linear, n_visits=n_visits)
+model = LitFullLinearModel(unet, encoder, linear, n_visits=n_visits, lr=1e-4, weight_decay=0.01)
 print(f"Training full Linear model with encoding_size={encoding_size} and n_visits={n_visits}")
 
 # Callbacks
@@ -81,7 +81,7 @@ trainer = pl.Trainer(
     callbacks=[early_stopping, lr_monitor],
     default_root_dir="model_saves/full-linear/",
     profiler="simple",
-    enable_progress_bar=True,
+    enable_progress_bar=False,
     accumulate_grad_batches=2,
     max_epochs=200
 )

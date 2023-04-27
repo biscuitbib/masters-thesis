@@ -33,7 +33,7 @@ test_indices = np.load("/home/blg515/masters-thesis/test_ids.npy", allow_pickle=
 lstm_data = LSTMDataModule(
     image_path,
     subjects_csv,
-    batch_size=8,
+    batch_size=16,
     train_slices_per_epoch=2000,
     val_slices_per_epoch=1000,
     train_indices=train_indices,
@@ -61,7 +61,7 @@ lit_lstm = LitFixedLSTM(unet, encoder, lstm).load_from_checkpoint(lstm_checkpoin
 
 print(f"Training end-to-end LSTM with encoding_size={encoding_size}, hidden_size={hidden_size}")
 
-model = LitFullLSTM(unet, encoder, lstm)
+model = LitFullLSTM(unet, encoder, lstm, lr=1e-4, weight_decay=0.01)
 
 # Callbacks
 early_stopping = EarlyStopping("loss/val_loss", mode="min", min_delta=0.0, patience=15)
@@ -79,7 +79,8 @@ trainer = pl.Trainer(
     callbacks=[early_stopping, lr_monitor],
     default_root_dir="model_saves/full-lstm/",
     profiler="simple",
-    enable_progress_bar=True,
+    #resume_from_checkpoint = hparams["lstm"]["full_lstm_path"],
+    enable_progress_bar=False,
     accumulate_grad_batches=2,
     max_epochs=200
 )

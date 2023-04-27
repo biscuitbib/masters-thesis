@@ -9,7 +9,7 @@ from torch import nn, optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class LitFixedLSTM(pl.LightningModule):
-    def __init__(self, unet, encoder, lstm, lr=1e-5, weight_decay=1e-5):
+    def __init__(self, unet, encoder, lstm, lr=1e-5, weight_decay=1e-4):
         super().__init__()
         self.unet = unet
         self.unet.encode = True

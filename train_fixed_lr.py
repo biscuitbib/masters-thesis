@@ -35,7 +35,7 @@ n_visits = hparams["linear_regression"]["n_visits"][n_visits_index]
 linear_data = LinearDataModule(
     image_path,
     subjects_csv,
-    batch_size=8,
+    batch_size=16,
     n_visits=n_visits,
     train_slices_per_epoch=1000,
     val_slices_per_epoch=500,
@@ -57,7 +57,7 @@ encoder = Encoder(1448, unet.fc_in, encoding_size)
 lit_encoder = LitEncoder(unet, encoder).load_from_checkpoint(encoder_checkpoint, unet=unet, encoder=encoder)
 
 linear = LinearModel(encoding_size * n_visits)
-model = LitFixedLinearModel(unet, encoder, linear, n_visits=n_visits)
+model = LitFixedLinearModel(unet, encoder, linear, n_visits=n_visits, lr=1e-4, weight_decay=1e-3)
 
 print(f"Training Linear model with encoding_size={encoding_size} and n_visits={n_visits}")
 
